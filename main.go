@@ -34,9 +34,9 @@ var config appConfig
 func main() {
 	router := gin.Default()
 
-	log.Fatalln(router.Run(":80"))
-
 	router.GET("/ping", ping)
+
+	log.Fatalln(router.Run(":80"))
 
 }
 
