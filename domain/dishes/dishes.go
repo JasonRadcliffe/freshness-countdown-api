@@ -1,4 +1,4 @@
-package foods
+package dishes
 
 type food struct {
 	FoodID         int    `json:"FoodID"`
