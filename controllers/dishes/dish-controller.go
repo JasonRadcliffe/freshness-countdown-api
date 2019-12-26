@@ -6,6 +6,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//GetHandler differentiates between getDishes and GetExpired as Httprouter is not able to.
+func GetHandler(c *gin.Context) {
+	fmt.Println("Running the GetHandler function: beep boop")
+	dishID := c.Param("dish_id")
+	if dishID == "expired" {
+		fmt.Println("GOT THE EXPIRED ROUTE!!!")
+		GetExpiredDishes(c)
+	} else {
+		fmt.Println("GOT THE NORMAL GETDISHES ROUTE!!!")
+		GetDishes(c)
+
+	}
+	c.JSON(200, gin.H{
+		"message": "pong",
+	})
+}
+
 //GetDishes gets all the dishes for the active user.
 func GetDishes(c *gin.Context) {
 	fmt.Println("Running the GetDishes function: PONG")

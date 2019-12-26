@@ -11,7 +11,10 @@ func mapRoutes() {
 	router.GET("/ping", ping.Ping)
 
 	router.GET("/dishes", dishes.GetDishes)
-	router.GET("/dishes/:dish_id", dishes.GetDish)
+
+	router.GET("/dishes/:dish_id", dishes.GetHandler)
+	router.GET("/dishes/expired", dishes.GetHandler)
+
 	router.POST("/dishes", dishes.CreateDish)
 	router.PATCH("/dishes/:dish_id", dishes.UpdateDish)
 	router.DELETE("/dishes/:dish_id", dishes.DeleteDish)
@@ -29,6 +32,5 @@ func mapRoutes() {
 	router.DELETE("/storageunits/:storage_id", sunits.DeleteSUnit)
 
 	router.GET("/storageunits/:storage_id/dishes", dishes.GetStorageDishes)
-	router.GET("/dishes/expired", dishes.GetExpiredDishes)
 
 }
