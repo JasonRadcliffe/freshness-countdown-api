@@ -15,7 +15,7 @@ func GetHandler(c *gin.Context) {
 		GetExpiredDishes(c)
 	} else {
 		fmt.Println("GOT THE NORMAL GETDISHES ROUTE!!!")
-		GetDishes(c)
+		GetDish(c)
 
 	}
 	c.JSON(200, gin.H{
@@ -41,7 +41,8 @@ func GetExpiredDishes(c *gin.Context) {
 
 //GetDish gets a specific dish.
 func GetDish(c *gin.Context) {
-	fmt.Println("Running the GetDish function: PONG")
+	dishID := c.Param("dish_id")
+	fmt.Println("Running the GetDish function for this dish:", dishID)
 	c.JSON(200, gin.H{
 		"message": "pong",
 	})
