@@ -33,7 +33,7 @@ func init() {
 		log.Fatalln("config file error")
 	}
 	json.Unmarshal(file, &config)
-	fmt.Println(config.CertConfig)
+	fmt.Println(config)
 }
 
 //StartApplication is called by main.go and starts the app.
