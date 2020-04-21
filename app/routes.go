@@ -3,7 +3,7 @@ package app
 import (
 	"github.com/jasonradcliffe/freshness-countdown-api/controllers/dishes"
 	"github.com/jasonradcliffe/freshness-countdown-api/controllers/ping"
-	"github.com/jasonradcliffe/freshness-countdown-api/controllers/sunits"
+	"github.com/jasonradcliffe/freshness-countdown-api/controllers/storage"
 	"github.com/jasonradcliffe/freshness-countdown-api/controllers/users"
 )
 
@@ -24,11 +24,11 @@ func mapRoutes() {
 	router.PATCH("/users/:user_id", users.UpdateUser)
 	router.DELETE("/users/:user_id", users.DeleteUser)
 
-	router.GET("/storageunits", sunits.GetSUnits)
-	router.GET("/storageunits/:storage_id", sunits.GetSUnit)
-	router.POST("/storageunits", sunits.CreateSUnit)
-	router.PATCH("/storageunits/:storage_id", sunits.UpdateSUnit)
-	router.DELETE("/storageunits/:storage_id", sunits.DeleteSUnit)
+	router.GET("/storageunits", storage.GetStorageUnits)
+	router.GET("/storageunits/:storage_id", storage.GetStorageUnit)
+	router.POST("/storageunits", storage.CreateStorageUnit)
+	router.PATCH("/storageunits/:storage_id", storage.UpdateStorageUnit)
+	router.DELETE("/storageunits/:storage_id", storage.DeleteStorageUnit)
 
 	router.GET("/storageunits/:storage_id/dishes", dishes.GetStorageDishes)
 
