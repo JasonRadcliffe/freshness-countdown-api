@@ -32,11 +32,10 @@ func init() {
 	if err != nil {
 		log.Fatalln("config file error")
 	}
-	err2 := json.Unmarshal(file, &config)
-	if err2 != nil {
-		fmt.Println("got an err during json.unmarshal" + err2.Error())
+	err = json.Unmarshal(file, &config)
+	if err != nil {
+		fmt.Println("got an err during json.unmarshal of config" + err.Error())
 	}
-	fmt.Println(config)
 }
 
 //StartApplication is called by main.go and starts the app.
