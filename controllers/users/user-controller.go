@@ -16,7 +16,8 @@ func GetUsers(c *gin.Context) {
 
 //GetUser gets a specific dish.
 func GetUser(c *gin.Context) {
-	fmt.Println("Running the GetUser function: PONG")
+	userID := c.Param("user_id")
+	fmt.Println("Running the GetUser function for this user:", userID)
 	c.JSON(200, gin.H{
 		"message": "pong",
 	})
