@@ -25,12 +25,12 @@ func mapRoutes() {
 	router.PATCH("/users/:user_id", users.UpdateUser)
 	router.DELETE("/users/:user_id", users.DeleteUser)
 
-	router.GET("/storageunits", storage.GetStorageUnits)
-	router.GET("/storageunits/:storage_id", storage.GetStorageUnit)
-	router.POST("/storageunits", storage.CreateStorageUnit)
-	router.PATCH("/storageunits/:storage_id", storage.UpdateStorageUnit)
-	router.DELETE("/storageunits/:storage_id", storage.DeleteStorageUnit)
+	router.GET("/storage", storage.GetStorageUnits)
+	router.GET("/storage/:storage_id", storage.GetStorageUnit)
+	router.POST("/storage", storage.CreateStorageUnit)
+	router.PATCH("/storage/:storage_id", storage.UpdateStorageUnit)
+	router.DELETE("/storage/:storage_id", storage.DeleteStorageUnit)
 
-	router.GET("/storageunits/:storage_id/dishes", dishes.GetStorageDishes)
+	router.GET("/storage/:storage_id/dishes", dishes.GetStorageDishes)
 
 }
