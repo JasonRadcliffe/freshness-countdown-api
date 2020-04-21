@@ -16,11 +16,7 @@ func GetHandler(c *gin.Context) {
 	} else {
 		fmt.Println("GOT THE NORMAL GETDISHES ROUTE!!!")
 		GetDish(c)
-
 	}
-	c.JSON(200, gin.H{
-		"message": "pong",
-	})
 }
 
 //GetDishes gets all the dishes for the active user.

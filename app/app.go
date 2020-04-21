@@ -3,6 +3,7 @@ package app
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -57,6 +58,7 @@ func StartApplication() {
 		Handler:      router,
 	}
 	//From the config file: the file path to the fullchain .pem and privkey .pem
+	fmt.Println("about to listen and serve tls")
 	log.Fatalln(srv.ListenAndServeTLS(config.CertConfig.Fullchain, config.CertConfig.PrivKey))
 	//-----------------------------------------------End Server Setup and Config---
 
