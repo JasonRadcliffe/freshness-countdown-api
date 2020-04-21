@@ -32,9 +32,10 @@ func init() {
 	if err != nil {
 		log.Fatalln("config file error")
 	}
-	fmt.Println("here is the file:")
-	fmt.Println(string(file))
-	json.Unmarshal(file, &config)
+	_, err := json.Unmarshal(file, &config)
+	if err != nil {
+		fmt.Println("got an err during json.unmarshal" + err)
+	}
 	fmt.Println(config)
 }
 
