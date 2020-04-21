@@ -1,12 +1,14 @@
 package dishes
 
-type food struct {
-	FoodID         int    `json:"FoodID"`
-	LocationID     int    `json:"LocationID"`
-	LocationString string `json:"LocationString"`
-	Description    string `json:"FoodDescription"`
-	TimeCreated    string `json:"TimeCreated"`
-	TimeExpires    string `json:"TimeExpires"`
+type dish struct {
+	DishID      int    `json:"DishID"`
+	UserID      int    `json:"UserID"`
+	StorageID   int    `json:"StorageID"`
+	Title       string `json:"Title"`
+	Description string `json:"Description"`
+	CreatedDate string `json:"TimeCreated"`
+	ExpireDate  string `json:"TimeExpires"`
+	Priority    string `json:"Priority"`
 }
 
-type foods []food
+type dishes []dish

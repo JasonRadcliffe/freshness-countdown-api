@@ -61,7 +61,6 @@ func StartApplication() {
 		Handler:      router,
 	}
 	//From the config file: the file path to the fullchain .pem and privkey .pem
-	fmt.Println("about to listen and serve tls" + config.CertConfig.Fullchain)
 	log.Fatalln(srv.ListenAndServeTLS(config.CertConfig.Fullchain, config.CertConfig.PrivKey))
 	//-----------------------------------------------End Server Setup and Config---
 
