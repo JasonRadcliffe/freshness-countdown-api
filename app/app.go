@@ -83,7 +83,11 @@ func Oauthlogin(c *gin.Context) {
 //Privacy displays a basic privacy policy
 func Privacy(c *gin.Context) {
 	fmt.Println("Running the Privacy Policy function")
-	c.JSON(200, gin.H{
-		"message": "<h1>Privacy Policy:</h1><br> We won't sell or send your data anywhere.<br> Humans will review any data you submit.<br> Your data will be kept for the purpose of maintaining and improving our service.",
-	})
+
+	siteData := []byte("<h1>Privacy Policy:</h1><br> We won't sell or send your data anywhere.<br>" +
+		"Humans will review any data you submit.<br>" +
+		"Your data will be kept for the purpose of maintaining and improving our service.")
+
+	c.Data(200, "text/html", siteData)
+
 }
