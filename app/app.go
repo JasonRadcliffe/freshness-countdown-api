@@ -70,9 +70,8 @@ func StartApplication() {
 //Login displays a simple link that takes a user to the external google sign in flow.
 func Login(c *gin.Context) {
 	fmt.Println("Running the Login function")
-	c.JSON(200, gin.H{
-		"message": "<a href=/oauthlogin> Login with Google </a>",
-	})
+	siteData := []byte("<a href=/oauthlogin> Login with Google </a>")
+	c.Data(200, "text/html", siteData)
 }
 
 //Oauthlogin displays a simple link that takes a user to the external google sign in flow.
