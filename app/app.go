@@ -118,7 +118,7 @@ func LoginSuccess(c *gin.Context) {
 		fmt.Println("they did match!")
 		code := c.Request.FormValue("code")
 		fmt.Println("got the value for code:", code)
-		token, err := oauthconfig.Exchange(c, code.(string))
+		token, err := oauthconfig.Exchange(c, code)
 		check(err)
 		fmt.Println("Got the token:", token.AccessToken)
 
