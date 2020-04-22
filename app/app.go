@@ -108,7 +108,7 @@ func Oauthlogin(c *gin.Context) {
 //LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
 func LoginSuccess(c *gin.Context) {
 	fmt.Println("running the LoginSuccess function")
-	receivedState := c.Value("state")
+	receivedState := c.Request.FormValue("state")
 	fmt.Println("got the receivedState var:", receivedState)
 	fmt.Println("about to check it against the oauthstate var:", oauthstate)
 	if receivedState != oauthstate {
@@ -116,7 +116,7 @@ func LoginSuccess(c *gin.Context) {
 		c.AbortWithStatus(http.StatusForbidden)
 	} else {
 		fmt.Println("they did match!")
-		code := c.Value("code")
+		code := c.Request.FormValue("code")
 		fmt.Println("got the value for code:", code)
 		token, err := oauthconfig.Exchange(c, code.(string))
 		check(err)
