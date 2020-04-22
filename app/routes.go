@@ -33,4 +33,8 @@ func mapRoutes() {
 
 	router.GET("/storage/:storage_id/dishes", dishes.GetStorageDishes)
 
+	router.GET("/login", Login)
+	router.GET("/oauthlogin", Oauthlogin)
+	router.GET("/privacy", Privacy)
+
 }

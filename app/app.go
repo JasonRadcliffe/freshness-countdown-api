@@ -36,6 +36,8 @@ func init() {
 	if err != nil {
 		fmt.Println("got an err during json.unmarshal of config" + err.Error())
 	}
+
+
 }
 
 //StartApplication is called by main.go and starts the app.
@@ -64,4 +66,26 @@ func StartApplication() {
 	log.Fatalln(srv.ListenAndServeTLS(config.CertConfig.Fullchain, config.CertConfig.PrivKey))
 	//-----------------------------------------------End Server Setup and Config---
 
+}
+
+//Login displays a simple link that takes a user to the external google sign in flow.
+func Login(c *gin.Context) {
+	fmt.Println("Running the Login function")
+	c.JSON(200, gin.H{
+		"message": "<a href=/oauthlogin> Login with Google </a>",
+	})
+}
+
+
+//Oauthlogin displays a simple link that takes a user to the external google sign in flow.
+func Oauthlogin(c *gin.Context) {
+	fmt.Println("Running the Oauthlogin function")
+	c.Redirect(http.StatusTemporaryRedirect, "http://www.google.com/")
+}
+
+func Privacy(c *gin.Context){
+	fmt.Println("Running the Privacy Policy function")
+	c.JSON(200, gin.H{
+		"message":"<h1>Privacy Policy:</h1><br> We won't sell or send your data anywhere.<br> Humans will review any data you submit.<br> Your data will be kept for the purpose of maintaining and improving our service."
+	})
 }
