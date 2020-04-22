@@ -1,7 +1,9 @@
 package app
 
 import (
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +11,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jasonradcliffe/freshness-countdown-api/domain/users"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type appConfig struct {
@@ -25,6 +30,9 @@ type appConfig struct {
 
 //Config contins all the initial configuration info for this software
 var config appConfig
+var oauthconfig *oauth2.Config
+var oauthstate string
+var currentUser users.OauthUser
 var router = gin.Default()
 
 func init() {
@@ -34,7 +42,16 @@ func init() {
 	}
 	err = json.Unmarshal(file, &config)
 	if err != nil {
-		fmt.Println("got an err during json.unmarshal of config" + err.Error())
+		log.Fatalln("got an err during json.unmarshal of config" + err.Error())
+	}
+	oauthconfig = &oauth2.Config{
+		ClientID:     config.OAuthConfig.ClientID,
+		ClientSecret: config.OAuthConfig.ClientSecret,
+		RedirectURL:  "https://fcapi.jasonradcliffe.com/success",
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+		},
+		Endpoint: google.Endpoint,
 	}
 
 }
@@ -67,6 +84,12 @@ func StartApplication() {
 
 }
 
+func check(err error) {
+	if err != nil {
+		log.Fatalln("something must have happened: ", err)
+	}
+}
+
 //Login displays a simple link that takes a user to the external google sign in flow.
 func Login(c *gin.Context) {
 	fmt.Println("Running the Login function")
@@ -77,7 +100,41 @@ func Login(c *gin.Context) {
 //Oauthlogin displays a simple link that takes a user to the external google sign in flow.
 func Oauthlogin(c *gin.Context) {
 	fmt.Println("Running the Oauthlogin function")
-	c.Redirect(http.StatusTemporaryRedirect, "http://www.google.com/")
+	oauthstate = numGenerator()
+	url := oauthconfig.AuthCodeURL(oauthstate)
+	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+//LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
+func LoginSuccess(c *gin.Context) {
+	receivedState := c.Value("state")
+	if receivedState != oauthstate {
+		c.AbortWithStatus(http.StatusForbidden)
+	} else {
+		code := c.Value("code")
+		token, err := oauthconfig.Exchange(c, code.(string))
+		check(err)
+
+		response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+		check(err)
+
+		defer response.Body.Close()
+
+		contents, err := ioutil.ReadAll(response.Body)
+		check(err)
+
+		json.Unmarshal(contents, &currentUser)
+
+		if currentUser.VerifiedEmail == false {
+			c.AbortWithStatus(http.StatusForbidden)
+		} else {
+			fmt.Println("Got a verified user!!!!!!", currentUser)
+			successData := []byte("<h1>Success!</h1>")
+			c.Data(200, "text/html", successData)
+		}
+
+	}
+
 }
 
 //Privacy displays a basic privacy policy
@@ -90,4 +147,10 @@ func Privacy(c *gin.Context) {
 
 	c.Data(200, "text/html", siteData)
 
+}
+
+func numGenerator() string {
+	n := make([]byte, 32)
+	rand.Read(n)
+	return base64.StdEncoding.EncodeToString(n)
 }

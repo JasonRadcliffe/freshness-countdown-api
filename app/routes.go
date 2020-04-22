@@ -36,5 +36,6 @@ func mapRoutes() {
 	router.GET("/login", Login)
 	router.GET("/oauthlogin", Oauthlogin)
 	router.GET("/privacy", Privacy)
+	router.GET("/success", LoginSuccess)
 
 }
