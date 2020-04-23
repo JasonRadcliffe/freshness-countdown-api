@@ -81,6 +81,12 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 
 	}
 
+	fmt.Println("right now the length of resultDishes is:", len(resultDishes))
+	for i := 0; i < len(resultDishes); i++ {
+		fmt.Println("the current dish at position number:", i)
+		fmt.Println(resultDishes[i].Title)
+	}
+
 	return &resultDishes, nil
 }
 
