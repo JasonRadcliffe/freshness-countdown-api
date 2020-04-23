@@ -10,6 +10,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/jasonradcliffe/freshness-countdown-api/api"
+	"github.com/jasonradcliffe/freshness-countdown-api/repository/db"
+	"github.com/jasonradcliffe/freshness-countdown-api/services/dish"
+	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"golang.org/x/oauth2"
@@ -33,6 +38,7 @@ var config appConfig
 var oauthconfig *oauth2.Config
 var oauthstate string
 var currentUser user.OauthUser
+var apiHandler
 var router = gin.Default()
 
 func init() {
@@ -58,6 +64,15 @@ func init() {
 
 //StartApplication is called by main.go and starts the app.
 func StartApplication() {
+
+	repo, err := db.NewRepository(config.DBConfig)
+	if err != nil {
+		log.Fatalln("StartApplication() could not create the repo")
+	}
+
+	ds := dish.NewService(repo)
+	ss := storage.NewService(repo)
+	apiHandler = api.NewHandler(ds, ss)
 
 	mapRoutes()
 

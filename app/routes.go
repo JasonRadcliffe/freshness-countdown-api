@@ -13,7 +13,7 @@ func mapRoutes() {
 	router.GET("/dishes", dish.GetDishes)
 
 	//Handles the routes for "/dish/7" and "/dish/expired"
-	router.GET("/dishes/:dish_id", dish.GetHandler)
+	router.GET("/dishes/:dish_id", apiHandler.GetDishHandler)
 
 	router.POST("/dishes", dish.CreateDish)
 	router.PATCH("/dishes/:dish_id", dish.UpdateDish)
