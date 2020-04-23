@@ -43,7 +43,9 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 
 //GetDishes returns the list of all dishes in the database
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
-	rows, err := repo.db.Query("Select * FROM dish")
+	fmt.Println("Now in the GetDishes() func in the db_repository")
+	rows, err := repo.db.Query(`Select * FROM dish`)
+	fmt.Println("just attempted repo.db.Query. Err is:", err.Error())
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("Error while retrieving dishes from the database")
 		return nil, fcerr
