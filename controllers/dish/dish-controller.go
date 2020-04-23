@@ -1,4 +1,4 @@
-package dishes
+package dish
 
 import (
 	"fmt"
