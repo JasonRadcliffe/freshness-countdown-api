@@ -107,20 +107,13 @@ func Oauthlogin(c *gin.Context) {
 
 //LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
 func LoginSuccess(c *gin.Context) {
-	fmt.Println("running the LoginSuccess function")
 	receivedState := c.Request.FormValue("state")
-	fmt.Println("got the receivedState var:", receivedState)
-	fmt.Println("about to check it against the oauthstate var:", oauthstate)
 	if receivedState != oauthstate {
-		fmt.Println("they did not match")
 		c.AbortWithStatus(http.StatusForbidden)
 	} else {
-		fmt.Println("they did match!")
 		code := c.Request.FormValue("code")
-		fmt.Println("got the value for code:", code)
 		token, err := oauthconfig.Exchange(c, code)
 		check(err)
-		fmt.Println("Got the token:", token.AccessToken)
 
 		response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 		check(err)
@@ -130,11 +123,9 @@ func LoginSuccess(c *gin.Context) {
 		contents, err := ioutil.ReadAll(response.Body)
 		check(err)
 
-		fmt.Println("the contents of the response body:", contents)
 		json.Unmarshal(contents, &currentUser)
 
 		if currentUser.VerifiedEmail == false {
-			fmt.Println("currentUser.VerifiedEmail seems to be false")
 			c.AbortWithStatus(http.StatusForbidden)
 		} else {
 			fmt.Println("Got a verified user!!!!!!", currentUser)
