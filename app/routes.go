@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/jasonradcliffe/freshness-countdown-api/controllers/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/controllers/ping"
 	"github.com/jasonradcliffe/freshness-countdown-api/controllers/storage"
 	"github.com/jasonradcliffe/freshness-countdown-api/controllers/user"
@@ -9,7 +10,7 @@ import (
 func mapRoutes() {
 	router.GET("/ping", ping.Ping)
 
-	router.GET("/dishes", dish.Getdish)
+	router.GET("/dishes", dish.GetDishes)
 
 	//Handles the routes for "/dish/7" and "/dish/expired"
 	router.GET("/dishes/:dish_id", dish.GetHandler)
@@ -30,7 +31,7 @@ func mapRoutes() {
 	router.PATCH("/storage/:storage_id", storage.UpdateStorageUnit)
 	router.DELETE("/storage/:storage_id", storage.DeleteStorageUnit)
 
-	router.GET("/storage/:storage_id/dish", dish.GetStoragedish)
+	router.GET("/storage/:storage_id/dish", dish.GetStorageDishes)
 
 	router.GET("/login", Login)
 	router.GET("/oauthlogin", Oauthlogin)
