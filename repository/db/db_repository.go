@@ -12,49 +12,72 @@ import (
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
-	GetDishByID(int) (*dish.Dish, error)
-	GetStorageByID(int) (*storage.Storage, error)
+	GetDishByID(int) (*dish.Dish, fcerr.FCErr)
+	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
+	GetDishes() (*dish.Dishes, fcerr.FCErr)
 }
 
 type repository struct {
-	mysqldb *sql.DB
+	db *sql.DB
 }
 
 //NewRepository will get an instance of this type which satisfies the Repository interface.
-func NewRepository(config string) (Repository, error) {
-	fmt.Println("about to try to make a NewRepository with this config string:|" + strings.TrimSpace(config) + "|")
+func NewRepository(config string) (Repository, fcerr.FCErr) {
 	db, err := sql.Open("mysql", strings.TrimSpace(config))
 	if err != nil {
-		fmt.Println("sql.Open() did in fact throw an error")
 		fcerr := fcerr.NewInternalServerError("Error while connecting to the mysql database")
 		return nil, fcerr
 	}
-	fmt.Println("sql.Open() did not error")
 	defer db.Close()
 
 	//Check the connection to the database - If the credentials are wrong this will err out
-	fmt.Println("about to ping the connection to the database - if the credentials are wrong this will err out")
 	err = db.Ping()
 	if err != nil {
-		fmt.Println("yep, got an error when pinging the db")
 		fcerr := fcerr.NewInternalServerError("Error while pinging the mysql database")
 		return nil, fcerr
 	}
-
-	fmt.Println("got all the way through to the other end of NewRepository()")
 
 	resultDB := repository{db}
 	return &resultDB, nil
 }
 
+//GetDishes returns the list of all dishes in the database
+func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
+	rows, err := repo.db.Query("Select * FROM dish")
+	if err != nil {
+		fcerr := fcerr.NewInternalServerError("Error while retrieving dishes from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+
+	for rows.Next() {
+		var currentDish dish.Dish
+		fmt.Println("There is a Next Row in the db! Before I scan, here is the variable currentDish:", currentDish)
+
+		err := rows.Scan(&currentDish.DishID, &currentDish.UserID,
+			&currentDish.StorageID, &currentDish.Title, &currentDish.Description,
+			&currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority)
+		if err != nil {
+			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			return nil, fcerr
+		}
+
+		fmt.Println("I just scanned, here is the variable currentDish:", currentDish)
+
+	}
+
+	return nil, nil
+}
+
 //GetDishByID takes an int and queries the mysql database for a dish with this id.
-func (r *repository) GetDishByID(int) (*dish.Dish, error) {
+func (repo *repository) GetDishByID(int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
 	return &resultingDish, nil
 }
 
 //GetStorageByID takes an int and queries the mysql database for a storage with this id.
-func (r *repository) GetStorageByID(int) (*storage.Storage, error) {
+func (repo *repository) GetStorageByID(int) (*storage.Storage, fcerr.FCErr) {
 	var resultingStorage storage.Storage
 	return &resultingStorage, nil
 }
