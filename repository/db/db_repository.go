@@ -27,6 +27,20 @@ func NewRepository(config string) (Repository, error) {
 		fcerr := fcerr.NewInternalServerError("Error while connecting to the mysql database")
 		return nil, fcerr
 	}
+	fmt.Println("sql.Open() did not error")
+	defer db.Close()
+
+	//Check the connection to the database - If the credentials are wrong this will err out
+	fmt.Println("about to ping the connection to the database - if the credentials are wrong this will err out")
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("yep, got an error when pinging the db")
+		fcerr := fcerr.NewInternalServerError("Error while pinging the mysql database")
+		return nil, fcerr
+	}
+
+	fmt.Println("got all the way through to the other end of NewRepository()")
+
 	resultDB := repository{db}
 	return &resultDB, nil
 }
