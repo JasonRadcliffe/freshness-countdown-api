@@ -24,7 +24,7 @@ func mapRoutes() {
 	router.PATCH("/storage/:storage_id", apiHandler.UpdateStorageUnit)
 	router.DELETE("/storage/:storage_id", apiHandler.DeleteStorageUnit)
 
-	router.GET("/storage/:storage_id/dish", apiHandler.GetStorageDishes)
+	router.GET("/storage/:storage_id/dishes", apiHandler.GetStorageDishes)
 
 	router.GET("/login", Login)
 	router.GET("/oauthlogin", Oauthlogin)
