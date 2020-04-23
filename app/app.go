@@ -38,7 +38,7 @@ var config appConfig
 var oauthconfig *oauth2.Config
 var oauthstate string
 var currentUser user.OauthUser
-var apiHandler
+var apiHandler interface{}
 var router = gin.Default()
 
 func init() {
