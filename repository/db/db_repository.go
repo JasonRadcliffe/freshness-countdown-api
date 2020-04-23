@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
@@ -11,11 +10,6 @@ import (
 )
 
 var testing string
-
-func init() {
-	fmt.Println("Doing the db_repository init()")
-	testing = "jason123"
-}
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
@@ -30,13 +24,13 @@ type repository struct {
 
 //NewRepository will get an instance of this type which satisfies the Repository interface.
 func NewRepository(config string) (Repository, fcerr.FCErr) {
-	fmt.Println("first line of the NewRepository() func. testing:", testing)
 	db, err := sql.Open("mysql", strings.TrimSpace(config))
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("Error while connecting to the mysql database")
 		return nil, fcerr
 	}
-	//Trying this without the db.close() at all
+
+	//trying without the db.Close()
 	//defer db.Close()
 
 	//Check the connection to the database - If the credentials are wrong this will err out
@@ -53,11 +47,8 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 //GetDishes returns the list of all dishes in the database
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	var resultDishes dish.Dishes
-	fmt.Println("Now in the GetDishes() func in the db_repository")
 	rows, err := repo.db.Query(`Select * FROM dish`)
-	fmt.Println("just attempted repo.db.Query.")
 	if err != nil {
-		fmt.Println("rats, got an err:", err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while retrieving dishes from the database")
 		return nil, fcerr
 	}
@@ -66,7 +57,6 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 
 	for rows.Next() {
 		var currentDish dish.Dish
-		fmt.Println("There is a Next Row in the db! Before I scan, here is the variable currentDish:", currentDish)
 
 		err := rows.Scan(&currentDish.DishID, &currentDish.UserID,
 			&currentDish.StorageID, &currentDish.Title, &currentDish.Description,
@@ -75,16 +65,8 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
 			return nil, fcerr
 		}
-
-		fmt.Println("I just scanned, here is the variable currentDish:", currentDish)
 		resultDishes = append(resultDishes, currentDish)
 
-	}
-
-	fmt.Println("right now the length of resultDishes is:", len(resultDishes))
-	for i := 0; i < len(resultDishes); i++ {
-		fmt.Println("the current dish at position number:", i)
-		fmt.Println(resultDishes[i].Title)
 	}
 
 	return &resultDishes, nil
