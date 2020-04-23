@@ -3,8 +3,12 @@ package api
 import (
 	"fmt"
 
+	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
+
 	"github.com/gin-gonic/gin"
+	dishDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/dish"
+
 	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
 )
 
@@ -62,7 +66,17 @@ func (h *handler) Ping(c *gin.Context) {
 
 //GetDishes gets all the dishes the active user has
 func (h *handler) GetDishes(c *gin.Context) {
+	var dishes *dishDomain.Dishes
+	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
+
+	dishes, err = h.dishService.GetAll()
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
+		fmt.Println("could not handle the GetDishes route")
+		return
+	}
+	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
 	c.JSON(200, gin.H{
 		"message": "NEW----Running the GetDishes function",
 	})
