@@ -36,8 +36,8 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 		fcerr := fcerr.NewInternalServerError("Error while connecting to the mysql database")
 		return nil, fcerr
 	}
-	defer db.Close()
-	fmt.Println("just finished with the defer db.close() statement. testing:", testing)
+	//Trying this without the db.close() at all
+	//defer db.Close()
 
 	//Check the connection to the database - If the credentials are wrong this will err out
 	err = db.Ping()
