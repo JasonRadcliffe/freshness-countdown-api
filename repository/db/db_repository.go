@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/storage"
@@ -21,7 +22,7 @@ type repository struct {
 
 //NewRepository will get an instance of this type which satisfies the Repository interface.
 func NewRepository(config string) (Repository, error) {
-	fmt.Println("about to try to make a NewRepository with this config string:", config)
+	fmt.Println("about to try to make a NewRepository with this config string:|", strings.TrimSpace(config), "|")
 	db, err := sql.Open("mysql", config)
 	if err != nil {
 		fmt.Println("sql.Open() did in fact throw an error")
