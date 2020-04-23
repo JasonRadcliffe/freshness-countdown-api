@@ -1,6 +1,7 @@
-package users
+package user
 
-type user struct {
+//User type is the struct in the Domain that contains all the fields for what a User is.
+type User struct {
 	UserID int    `json:"UserID"`
 	Email  string `json:"Email"`
 }
@@ -12,3 +13,6 @@ type OauthUser struct {
 	Name          string `json:"name"`
 	UserID        int
 }
+
+//Contains methods and validators that a user would know about themselves
+//
