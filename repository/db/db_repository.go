@@ -52,6 +52,7 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 
 //GetDishes returns the list of all dishes in the database
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
+	var resultDishes dish.Dishes
 	fmt.Println("Now in the GetDishes() func in the db_repository")
 	rows, err := repo.db.Query(`Select * FROM dish`)
 	fmt.Println("just attempted repo.db.Query.")
@@ -76,10 +77,11 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 		}
 
 		fmt.Println("I just scanned, here is the variable currentDish:", currentDish)
+		resultDishes = append(resultDishes, currentDish)
 
 	}
 
-	return nil, nil
+	return &resultDishes, nil
 }
 
 //GetDishByID takes an int and queries the mysql database for a dish with this id.
