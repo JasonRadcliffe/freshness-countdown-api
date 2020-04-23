@@ -10,6 +10,13 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
+var testing string
+
+func init() {
+	fmt.Println("Doing the db_repository init()")
+	testing = "jason123"
+}
+
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
 	GetDishByID(int) (*dish.Dish, fcerr.FCErr)
@@ -23,12 +30,14 @@ type repository struct {
 
 //NewRepository will get an instance of this type which satisfies the Repository interface.
 func NewRepository(config string) (Repository, fcerr.FCErr) {
+	fmt.Println("first line of the NewRepository() func. testing:", testing)
 	db, err := sql.Open("mysql", strings.TrimSpace(config))
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("Error while connecting to the mysql database")
 		return nil, fcerr
 	}
 	defer db.Close()
+	fmt.Println("just finished with the defer db.close() statement. testing:", testing)
 
 	//Check the connection to the database - If the credentials are wrong this will err out
 	err = db.Ping()
