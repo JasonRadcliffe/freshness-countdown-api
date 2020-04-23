@@ -11,7 +11,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jasonradcliffe/freshness-countdown-api/domain/users"
+	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -32,7 +32,7 @@ type appConfig struct {
 var config appConfig
 var oauthconfig *oauth2.Config
 var oauthstate string
-var currentUser users.OauthUser
+var currentUser user.OauthUser
 var router = gin.Default()
 
 func init() {
