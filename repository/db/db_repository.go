@@ -9,7 +9,44 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
-var testing string
+const getDishesQuery = `SELECT * FROM dish`
+
+const getDishByIDQuery = `SELECT * FROM dish WHERE id = %d`
+
+const getDishByTempMatch = `Select * FROM dish WHERE temp_match = %s`
+
+const createDishQuery = `INSERT INTO dish ` +
+	`(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match) ` +
+	`VALUES(%d, %d, %s, %s, %s, %s, %s, %s, %d, %s);`
+
+const updateDishQuery = `UPDATE dish SET storage_id = %s, title = %s, description = %s, expire_date = %s, ` +
+	`priority = %s, dish_type = %s, portions = %d WHERE id=%d`
+
+const deleteDishQuery = `DELETE FROM dish WHERE id=%d`
+
+const getUsersQuery = `SELECT * FROM user`
+
+const getUserByIDQuery = `SELECT * FROM user WHERE id = %d`
+
+const getUserByEmailQuery = `SELECT * FROM user WHERE email = %s`
+
+const createUserQuery = `INSERT INTO user (email, created_date, access_token, temp_match) ` +
+	`VALUES(%s, %s, %s, %s)`
+
+const deleteUserQuery = `DELETE FROM user WHERE id=%d`
+
+const getAllStorageQuery = `SELECT * FROM storage`
+
+const getStorageByIDQuery = `SELECT * FROM storage WHERE id=%d`
+
+const createStorageQuery = `INSERT INTO storage (user_id, title, description, temp_match) ` +
+	`VALUES(%d, %s, %s, %s)`
+
+const updateStorageQuery = `UPDATE storage SET title = %s, description = %s WHERE id=%d`
+
+const deleteStorageQuery = `DELETE FROM storage WHERE id=%d`
+
+const getStorageDishesQuery = `SELECT * FROM dish WHERE storage_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
@@ -76,6 +113,10 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 func (repo *repository) GetDishByID(int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
 	return &resultingDish, nil
+}
+
+func (repo *repository) CreateDish() (*dish.Dish, fcerr.FCErr) {
+	return nil, nil
 }
 
 //GetStorageByID takes an int and queries the mysql database for a storage with this id.
