@@ -2,8 +2,11 @@ package user
 
 //User type is the struct in the Domain that contains all the fields for what a User is.
 type User struct {
-	UserID int    `json:"UserID"`
-	Email  string `json:"Email"`
+	UserID      int    `json:"UserID"`
+	Email       string `json:"Email"`
+	CreatedDate string `json:"TimeCreated"`
+	AccessToken string `json:"AccessToken"`
+	TempMatch   string `json:"TempMatch"`
 }
 
 //OauthUser is what will be populated upon receiving confirmation from Oauth Provider.

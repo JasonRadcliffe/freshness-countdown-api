@@ -10,6 +10,9 @@ type Dish struct {
 	CreatedDate string `json:"TimeCreated"`
 	ExpireDate  string `json:"TimeExpires"`
 	Priority    string `json:"Priority"`
+	DishType    string `json:"DishType"`
+	Portions    int    `json:"Portions"`
+	TempMatch   string `json:"TempMatch"`
 }
 
 //Dishes type is a slice of the domain type Dish.

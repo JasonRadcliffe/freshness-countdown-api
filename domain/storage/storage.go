@@ -6,6 +6,7 @@ type Storage struct {
 	UserID      int    `json:"UserID"`
 	Title       string `json:"Title"`
 	Description string `json:"Description"`
+	TempMatch   string `json:"TempMatch"`
 }
 
 //Storages type is a slice of the domain type Storage.
