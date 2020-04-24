@@ -78,7 +78,7 @@ func (h *handler) GetDishes(c *gin.Context) {
 	}
 	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
 	c.JSON(200, gin.H{
-		dishes
+		"message": dishes,
 	})
 }
 
