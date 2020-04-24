@@ -239,14 +239,6 @@ func (h *handler) CreateUser(c *gin.Context) {
 	})
 }
 
-//UpdateUser updates certain attributes of a specific user
-func (h *handler) UpdateUser(c *gin.Context) {
-	fmt.Println("NEW____-----Running the UpdateUser function")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the UpdateUser function",
-	})
-}
-
 //DeleteUser deletes a specific user from the list
 func (h *handler) DeleteUser(c *gin.Context) {
 	userID := c.Param("user_id")

@@ -15,7 +15,6 @@ func mapRoutes() {
 	router.GET("/users", apiHandler.GetUsers)
 	router.GET("/users/:user_id", apiHandler.GetUserHandler)
 	router.POST("/users", apiHandler.CreateUser)
-	router.PATCH("/users/:user_id", apiHandler.UpdateUser)
 	router.DELETE("/users/:user_id", apiHandler.DeleteUser)
 
 	router.GET("/storage", apiHandler.GetStorageUnits)
