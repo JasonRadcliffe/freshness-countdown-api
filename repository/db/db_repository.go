@@ -103,6 +103,9 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
 			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
 		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fmt.Println("&currentDish.DishID:", currentDish.DishID)
+			fmt.Println("&currentDish.TempMatch:", currentDish.TempMatch)
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
 			return nil, fcerr
 		}
