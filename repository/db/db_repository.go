@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
@@ -83,18 +84,21 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 
 //GetDishes returns the list of all dishes in the database
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
+	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
 	rows, err := repo.db.Query(`Select * FROM dish`)
+	fmt.Println("now after doing the Query")
 	if err != nil {
+		fmt.Println("got an error on the Query")
 		fcerr := fcerr.NewInternalServerError("Error while retrieving dishes from the database")
 		return nil, fcerr
 	}
 	defer rows.Close()
 	//s := "Retrieved Records:\n"
-
+	fmt.Println("now about to check the rows returned:")
 	for rows.Next() {
 		var currentDish dish.Dish
-
+		fmt.Println("Inside the result set loop. currentDish:", currentDish)
 		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
 			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
 			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
@@ -102,6 +106,7 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
 			return nil, fcerr
 		}
+		fmt.Println("now after the current dish scanned. currentDish:", currentDish)
 		resultDishes = append(resultDishes, currentDish)
 
 	}
