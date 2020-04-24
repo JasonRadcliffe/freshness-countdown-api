@@ -95,9 +95,9 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	for rows.Next() {
 		var currentDish dish.Dish
 
-		err := rows.Scan(&currentDish.DishID, &currentDish.UserID,
-			&currentDish.StorageID, &currentDish.Title, &currentDish.Description,
-			&currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority)
+		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
+			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
 		if err != nil {
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
 			return nil, fcerr
