@@ -37,7 +37,6 @@ type Handler interface {
 	GetUserByID(*gin.Context)
 	GetUserByEmail(*gin.Context)
 	CreateUser(*gin.Context)
-	UpdateUser(*gin.Context)
 	DeleteUser(*gin.Context)
 }
 
