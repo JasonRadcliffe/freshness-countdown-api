@@ -15,6 +15,7 @@ import (
 //Handler interface is the contract for the methods that the handler needs to have.
 type Handler interface {
 	Ping(*gin.Context)
+	Pong(*gin.Context)
 
 	GetDishes(*gin.Context)
 	GetDishHandler(*gin.Context)
@@ -55,7 +56,14 @@ func NewHandler(ds dish.Service, ss storage.Service) Handler {
 
 //Ping is the test function to see if the server is being hit.
 func (h *handler) Ping(c *gin.Context) {
-	fmt.Println("NEW____-----Running the Ping function: PONG")
+	fmt.Println("NEW____-----Running the Ping function: Ping")
+	c.JSON(200, gin.H{
+		"message": "NEW----Ping",
+	})
+}
+
+func (h *handler) Pong(c *gin.Context) {
+	fmt.Println("NEW - - - PONG PONG PONG - got the pong method!")
 	c.JSON(200, gin.H{
 		"message": "NEW----pong",
 	})

@@ -2,6 +2,7 @@ package app
 
 func mapRoutes() {
 	router.GET("/ping", apiHandler.Ping)
+	router.GET("/pong", apiHandler.Pong)
 
 	router.GET("/dishes", apiHandler.GetDishes)
 
