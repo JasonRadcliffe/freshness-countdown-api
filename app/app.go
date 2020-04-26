@@ -142,7 +142,7 @@ func LoginSuccess(c *gin.Context) {
 		contents, err := ioutil.ReadAll(response.Body)
 		check(err)
 		fmt.Println("\n\n\n")
-		fmt.Println("here is the contents of the response:", contents)
+		//fmt.Println("here is the contents of the response:", contents)
 		fmt.Println("\n\n\n")
 		json.Unmarshal(contents, &currentUser)
 		fmt.Println("here is the current User:", currentUser)
