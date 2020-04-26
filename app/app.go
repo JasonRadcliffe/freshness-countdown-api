@@ -131,11 +131,7 @@ func LoginSuccess(c *gin.Context) {
 		code := c.Request.FormValue("code")
 		token, err := oauthconfig.Exchange(c, code)
 		check(err)
-		fmt.Println("\n\n\n")
-		fmt.Println("Jason - Here is the token we got:", token)
-		fmt.Println("\n\n\n")
 
-		// OLD: response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
 		check(err)
 
@@ -143,11 +139,8 @@ func LoginSuccess(c *gin.Context) {
 
 		contents, err := ioutil.ReadAll(response.Body)
 		check(err)
-		fmt.Println("\n\n\n")
-		//fmt.Println("here is the contents of the response:", contents)
-		fmt.Println("\n\n\n")
 		json.Unmarshal(contents, &currentUser)
-		fmt.Println("here is the current User:", currentUser)
+		fmt.Println("Here is the current User:", currentUser)
 
 		if currentUser.VerifiedEmail == false {
 			c.AbortWithStatus(http.StatusForbidden)
