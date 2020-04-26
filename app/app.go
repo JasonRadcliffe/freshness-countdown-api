@@ -133,7 +133,8 @@ func LoginSuccess(c *gin.Context) {
 		fmt.Println("Jason - Here is the token we got:", token)
 		fmt.Println("\n\n\n")
 
-		response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+		// OLD: response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+		response, err := http.Get("https://accounts.google.com/o/oauth2/v2/auth?access_token=" + token.AccessToken)
 		check(err)
 
 		defer response.Body.Close()
@@ -145,6 +146,7 @@ func LoginSuccess(c *gin.Context) {
 		fmt.Println("\n\n\n")
 		json.Unmarshal(contents, &currentUser)
 		fmt.Println("here is the current User:", currentUser)
+
 		if currentUser.VerifiedEmail == false {
 			c.AbortWithStatus(http.StatusForbidden)
 		} else {
