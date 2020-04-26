@@ -13,6 +13,7 @@ import (
 type Service interface {
 	GetByID(int) (*user.User, fcerr.FCErr)
 	GetByEmail(string) (*user.User, fcerr.FCErr)
+	Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr)
 }
 
 type service struct {

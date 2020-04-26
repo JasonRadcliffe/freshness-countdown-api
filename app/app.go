@@ -14,9 +14,10 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/repository/db"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
+	"github.com/jasonradcliffe/freshness-countdown-api/services/user"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
+	domainUser "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -37,7 +38,7 @@ type appConfig struct {
 var config appConfig
 var oauthconfig *oauth2.Config
 var oauthstate string
-var currentUser user.OauthUser
+var currentUser domainUser.OauthUser
 var apiHandler api.Handler
 var router = gin.Default()
 
@@ -74,7 +75,9 @@ func StartApplication() {
 
 	ds := dish.NewService(repo)
 	ss := storage.NewService(repo)
-	apiHandler = api.NewHandler(ds, ss)
+	us := user.NewService(repo)
+
+	apiHandler = api.NewHandler(ds, ss, us, oauthconfig)
 
 	mapRoutes()
 
@@ -105,13 +108,6 @@ func check(err error) {
 	if err != nil {
 		log.Fatalln("something must have happened: ", err)
 	}
-}
-
-//Login displays a simple link that takes a user to the external google sign in flow.
-func Login(c *gin.Context) {
-	fmt.Println("Running the Login function")
-	siteData := []byte("<a href=/oauthlogin> Login with Google </a>")
-	c.Data(200, "text/html", siteData)
 }
 
 //Oauthlogin displays a simple link that takes a user to the external google sign in flow.
@@ -146,6 +142,8 @@ func LoginSuccess(c *gin.Context) {
 			c.AbortWithStatus(http.StatusForbidden)
 		} else {
 			fmt.Println("Got a verified user!!!!!!", currentUser)
+
+			apiHandler.GetUserByEmail(currentUser.Email)
 
 			successData := []byte("<h1>Success!</h1>")
 			c.Data(200, "text/html", successData)

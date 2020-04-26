@@ -1,21 +1,31 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
+	"golang.org/x/oauth2"
 
 	"github.com/gin-gonic/gin"
 	dishDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
+	userDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/dish"
-
 	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
+	"github.com/jasonradcliffe/freshness-countdown-api/services/user"
 )
 
 //Handler interface is the contract for the methods that the handler needs to have.
 type Handler interface {
 	Ping(*gin.Context)
 	Pong(*gin.Context)
+
+	Login(*gin.Context)
+	Oauthlogin(*gin.Context)
 
 	GetDishes(*gin.Context)
 	GetDishHandler(*gin.Context)
@@ -44,13 +54,21 @@ type Handler interface {
 type handler struct {
 	dishService    dish.Service
 	storageService storage.Service
+	userService    user.Service
+	oauthConfig    *oauth2.Config
 }
 
+var oauthstate string
+var oauthConfig *oauth2.Config
+var currentUser userDomain.OauthUser
+
 //NewHandler takes a sequence of services and returns a new API Handler.
-func NewHandler(ds dish.Service, ss storage.Service) Handler {
+func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2.Config) Handler {
 	return &handler{
 		dishService:    ds,
 		storageService: ss,
+		userService:    us,
+		oauthConfig:    oC,
 	}
 }
 
@@ -68,6 +86,78 @@ func (h *handler) Pong(c *gin.Context) {
 		"message": "NEW----pong",
 	})
 }
+
+//@@@@@@App Section@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+//Login displays a simple link that takes a user to the external google sign in flow.
+func (h *handler) Login(c *gin.Context) {
+	fmt.Println("Running the Login function")
+	siteData := []byte("<a href=/oauthlogin> Login with Google </a>")
+	c.Data(200, "text/html", siteData)
+}
+
+//Oauthlogin takes a user to the external google sign in flow.
+func (h *handler) Oauthlogin(c *gin.Context) {
+	fmt.Println("Running the Oauthlogin function")
+	oauthstate := numGenerator()
+	url := h.oauthConfig.AuthCodeURL(oauthstate, oauth2.AccessTypeOffline)
+	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+//LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
+func (h *handler) LoginSuccess(c *gin.Context) {
+	receivedState := c.Request.FormValue("state")
+	if receivedState != oauthstate {
+		c.AbortWithStatus(http.StatusForbidden)
+	} else {
+		code := c.Request.FormValue("code")
+		token, err := h.oauthConfig.Exchange(c, code)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+
+		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+
+		defer response.Body.Close()
+
+		contents, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+
+		json.Unmarshal(contents, &currentUser)
+		fmt.Println("Here is the current User:", currentUser)
+
+		if currentUser.VerifiedEmail == false {
+			c.AbortWithStatus(http.StatusForbidden)
+		} else {
+			fmt.Println("Got a verified user!!!!!!", currentUser)
+
+			dbUser, err := h.userService.GetByEmail(currentUser.Email)
+			if err != nil {
+				fmt.Println("loginSuccess could not find this user in the database! We should add them!!")
+				receivedUser, err := h.userService.Create(currentUser, token.AccessToken, token.RefreshToken)
+				if err != nil {
+					fmt.Println("Was not successful in adding a new user to the database!")
+					c.AbortWithStatus(http.StatusInternalServerError)
+
+				}
+				fmt.Println("we just put a new user in the database!! with database user id:", receivedUser.UserID)
+			}
+			fmt.Println("We already have this user!!! database user id:", dbUser.UserID)
+
+			successData := []byte("<h1>Success!</h1>")
+			c.Data(200, "text/html", successData)
+		}
+
+	}
+
+}
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 //^^^^^^^Dish Section ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -256,3 +346,9 @@ func (h *handler) DeleteUser(c *gin.Context) {
 }
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+func numGenerator() string {
+	n := make([]byte, 32)
+	rand.Read(n)
+	return base64.StdEncoding.EncodeToString(n)
+}

@@ -26,8 +26,8 @@ func mapRoutes() {
 
 	router.GET("/storage/:storage_id/dishes", apiHandler.GetStorageDishes)
 
-	router.GET("/login", Login)
-	router.GET("/oauthlogin", Oauthlogin)
+	router.GET("/login", apiHandler.Login)
+	router.GET("/oauthlogin", apiHandler.Oauthlogin)
 	router.GET("/privacy", Privacy)
 	router.GET("/success", LoginSuccess)
 
