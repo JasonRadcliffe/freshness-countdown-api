@@ -110,49 +110,6 @@ func check(err error) {
 	}
 }
 
-//Oauthlogin displays a simple link that takes a user to the external google sign in flow.
-func Oauthlogin(c *gin.Context) {
-	fmt.Println("Running the Oauthlogin function")
-	oauthstate = numGenerator()
-	url := oauthconfig.AuthCodeURL(oauthstate, oauth2.AccessTypeOffline)
-	c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
-//LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
-func LoginSuccess(c *gin.Context) {
-	receivedState := c.Request.FormValue("state")
-	if receivedState != oauthstate {
-		c.AbortWithStatus(http.StatusForbidden)
-	} else {
-		code := c.Request.FormValue("code")
-		token, err := oauthconfig.Exchange(c, code)
-		check(err)
-
-		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
-		check(err)
-
-		defer response.Body.Close()
-
-		contents, err := ioutil.ReadAll(response.Body)
-		check(err)
-		json.Unmarshal(contents, &currentUser)
-		fmt.Println("Here is the current User:", currentUser)
-
-		if currentUser.VerifiedEmail == false {
-			c.AbortWithStatus(http.StatusForbidden)
-		} else {
-			fmt.Println("Got a verified user!!!!!!", currentUser)
-
-			apiHandler.GetUserByEmail(currentUser.Email)
-
-			successData := []byte("<h1>Success!</h1>")
-			c.Data(200, "text/html", successData)
-		}
-
-	}
-
-}
-
 //Privacy displays a basic privacy policy
 func Privacy(c *gin.Context) {
 	fmt.Println("Running the Privacy Policy function")

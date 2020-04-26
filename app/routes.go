@@ -29,6 +29,6 @@ func mapRoutes() {
 	router.GET("/login", apiHandler.Login)
 	router.GET("/oauthlogin", apiHandler.Oauthlogin)
 	router.GET("/privacy", Privacy)
-	router.GET("/success", LoginSuccess)
+	router.GET("/success", apiHandler.LoginSuccess)
 
 }

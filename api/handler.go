@@ -26,6 +26,7 @@ type Handler interface {
 
 	Login(*gin.Context)
 	Oauthlogin(*gin.Context)
+	LoginSuccess(*gin.Context)
 
 	GetDishes(*gin.Context)
 	GetDishHandler(*gin.Context)
