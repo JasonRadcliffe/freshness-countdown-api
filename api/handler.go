@@ -109,16 +109,19 @@ func (h *handler) Oauthlogin(c *gin.Context) {
 func (h *handler) LoginSuccess(c *gin.Context) {
 	receivedState := c.Request.FormValue("state")
 	if receivedState != oauthstate {
+		fmt.Println("receivedState:", receivedState, "did not equal oauthstate:", oauthstate)
 		c.AbortWithStatus(http.StatusForbidden)
 	} else {
 		code := c.Request.FormValue("code")
 		token, err := h.oauthConfig.Exchange(c, code)
 		if err != nil {
+			fmt.Println("error when exchanging the token")
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
 		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
 		if err != nil {
+			fmt.Println("error when getting the userinfo with the access token")
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 
@@ -133,6 +136,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		fmt.Println("Here is the current User:", currentUser)
 
 		if currentUser.VerifiedEmail == false {
+			fmt.Println("current user.VerifiedEmail is false. CurrentUser:", currentUser)
 			c.AbortWithStatus(http.StatusForbidden)
 		} else {
 			fmt.Println("Got a verified user!!!!!!", currentUser)
