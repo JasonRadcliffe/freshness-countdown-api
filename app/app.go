@@ -55,7 +55,7 @@ func init() {
 		ClientSecret: config.OAuthConfig.ClientSecret,
 		RedirectURL:  "https://fcapi.jasonradcliffe.com/success",
 		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
+			"openid",
 		},
 		Endpoint: google.Endpoint,
 	}
@@ -116,7 +116,7 @@ func Login(c *gin.Context) {
 func Oauthlogin(c *gin.Context) {
 	fmt.Println("Running the Oauthlogin function")
 	oauthstate = numGenerator()
-	url := oauthconfig.AuthCodeURL(oauthstate)
+	url := oauthconfig.AuthCodeURL(oauthstate, oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
@@ -129,6 +129,8 @@ func LoginSuccess(c *gin.Context) {
 		code := c.Request.FormValue("code")
 		token, err := oauthconfig.Exchange(c, code)
 		check(err)
+
+		fmt.Println("Jason - Here is the token we got:", token)
 
 		response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 		check(err)
