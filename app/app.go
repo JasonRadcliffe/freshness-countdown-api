@@ -134,7 +134,7 @@ func LoginSuccess(c *gin.Context) {
 		fmt.Println("\n\n\n")
 
 		// OLD: response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
-		response, err := http.Get("https://accounts.google.com/o/oauth2/v2/auth?access_token=" + token.AccessToken)
+		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
 		check(err)
 
 		defer response.Body.Close()
