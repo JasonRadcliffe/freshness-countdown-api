@@ -7,53 +7,61 @@ import (
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/storage"
+	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
-const getDishesQuery = `SELECT * FROM dish`
+const getDishesBase = `SELECT * FROM dish`
 
-const getDishByIDQuery = `SELECT * FROM dish WHERE id = %d`
+const getDishByIDBase = `SELECT * FROM dish WHERE id = %d`
 
-const getDishByTempMatch = `Select * FROM dish WHERE temp_match = %s`
+const getDishByTempMatchBase = `Select * FROM dish WHERE temp_match = "%s"`
 
-const createDishQuery = `INSERT INTO dish ` +
+const createDishBase = `INSERT INTO dish ` +
 	`(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match) ` +
-	`VALUES(%d, %d, %s, %s, %s, %s, %s, %s, %d, %s);`
+	`VALUES(%d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s");`
 
-const updateDishQuery = `UPDATE dish SET storage_id = %s, title = %s, description = %s, expire_date = %s, ` +
-	`priority = %s, dish_type = %s, portions = %d WHERE id=%d`
+const updateDishBase = `UPDATE dish SET storage_id = "%s", title = "%s", description = "%s", expire_date = "%s", ` +
+	`priority = "%s", dish_type = "%s", portions = %d WHERE id=%d`
 
-const deleteDishQuery = `DELETE FROM dish WHERE id=%d`
+const deleteDishBase = `DELETE FROM dish WHERE id=%d`
 
-const getUsersQuery = `SELECT * FROM user`
+const getUsersBase = `SELECT * FROM user`
 
-const getUserByIDQuery = `SELECT * FROM user WHERE id = %d`
+const getUserByIDBase = `SELECT * FROM user WHERE id = %d`
 
-const getUserByEmailQuery = `SELECT * FROM user WHERE email = %s`
+const getUserByEmailBase = `SELECT * FROM user WHERE email = "%s"`
 
-const createUserQuery = `INSERT INTO user (email, created_date, access_token, temp_match) ` +
-	`VALUES(%s, %s, %s, %s)`
+const getUserByTempMatchBase = `SELECT * FROM user WHERE temp_match = "%s"`
 
-const deleteUserQuery = `DELETE FROM user WHERE id=%d`
+const createUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, temp_match) ` +
+	`VALUES("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")`
 
-const getAllStorageQuery = `SELECT * FROM storage`
+const deleteUserBase = `DELETE FROM user WHERE id=%d`
 
-const getStorageByIDQuery = `SELECT * FROM storage WHERE id=%d`
+const getAllStorageBase = `SELECT * FROM storage`
 
-const createStorageQuery = `INSERT INTO storage (user_id, title, description, temp_match) ` +
-	`VALUES(%d, %s, %s, %s)`
+const getStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
 
-const updateStorageQuery = `UPDATE storage SET title = %s, description = %s WHERE id=%d`
+const createStorageBase = `INSERT INTO storage (user_id, title, description, temp_match) ` +
+	`VALUES(%d, "%s", "%s", "%s")`
 
-const deleteStorageQuery = `DELETE FROM storage WHERE id=%d`
+const updateStorageBase = `UPDATE storage SET title = "%s", description = "%s" WHERE id=%d`
 
-const getStorageDishesQuery = `SELECT * FROM dish WHERE storage_id = %d`
+const deleteStorageBase = `DELETE FROM storage WHERE id=%d`
+
+const getStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
-	GetDishByID(int) (*dish.Dish, fcerr.FCErr)
-	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
 	GetDishes() (*dish.Dishes, fcerr.FCErr)
+	GetDishByID(int) (*dish.Dish, fcerr.FCErr)
+	CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
+	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
+	GetUserByID(int) (*user.User, fcerr.FCErr)
+	GetUserByEmail(string) (*user.User, fcerr.FCErr)
+	GetUserByTempMatch(string) (*user.User, fcerr.FCErr)
+	CreateUser(user.User) (*user.User, fcerr.FCErr)
 }
 
 type repository struct {
@@ -118,17 +126,138 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 }
 
 //GetDishByID takes an int and queries the mysql database for a dish with this id.
-func (repo *repository) GetDishByID(int) (*dish.Dish, fcerr.FCErr) {
+func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
 	return &resultingDish, nil
 }
 
-func (repo *repository) CreateDish() (*dish.Dish, fcerr.FCErr) {
+func (repo *repository) CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	return nil, nil
 }
 
 //GetStorageByID takes an int and queries the mysql database for a storage with this id.
-func (repo *repository) GetStorageByID(int) (*storage.Storage, fcerr.FCErr) {
+func (repo *repository) GetStorageByID(id int) (*storage.Storage, fcerr.FCErr) {
 	var resultingStorage storage.Storage
 	return &resultingStorage, nil
+}
+
+//GetUserByID gets a user from the database with the given ID.
+func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
+	getUserByIDQuery := fmt.Sprintf(getUserByIDBase, id)
+	fmt.Println("About to run this Query on the database:\n", getUserByIDQuery)
+	var resultingUser user.User
+
+	rows, err := repo.db.Query(getUserByIDQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by id")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+	fmt.Println("now about to check the rows returned:")
+	for rows.Next() {
+		var cUser user.User
+		fmt.Println("Inside the result set loop. currentUser:", cUser)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
+			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current user scanned. currentUser:", cUser)
+		resultingUser = cUser
+
+	}
+
+	return &resultingUser, nil
+}
+
+//GetUserByEmail gets a user from the database with the given email.
+func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
+	getUserByEmailQuery := fmt.Sprintf(getUserByEmailBase, email)
+	fmt.Println("About to run this Query on the database:\n", getUserByEmailQuery)
+	var resultingUser user.User
+
+	rows, err := repo.db.Query(getUserByEmailQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by email")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+	fmt.Println("now about to check the rows returned:")
+	for rows.Next() {
+		var cUser user.User
+		fmt.Println("Inside the result set loop. currentUser:", cUser)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
+			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current user scanned. currentUser:", cUser)
+		resultingUser = cUser
+
+	}
+
+	return &resultingUser, nil
+}
+
+//GetUserByTempMatch gets a user from the database with the given email.
+func (repo *repository) GetUserByTempMatch(tempMatch string) (*user.User, fcerr.FCErr) {
+	getUserByTempMatchQuery := fmt.Sprintf(getUserByTempMatchBase, tempMatch)
+	fmt.Println("About to run this Query on the database:\n", getUserByTempMatchQuery)
+	var resultingUser user.User
+
+	rows, err := repo.db.Query(getUserByTempMatchQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by temp match")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+	fmt.Println("now about to check the rows returned:")
+	for rows.Next() {
+		var cUser user.User
+		fmt.Println("Inside the result set loop. currentUser:", cUser)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
+			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current user scanned. currentUser:", cUser)
+		resultingUser = cUser
+
+	}
+
+	return &resultingUser, nil
+}
+
+//CreateUser adds a user to the database after being populated by the service.
+func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
+	createUserQuery := fmt.Sprintf(createUserBase, u.Email, u.FirstName, u.LastName, u.FullName, u.CreatedDate, u.AccessToken, u.RefreshToken, u.TempMatch)
+	fmt.Println("About to run this Query on the database:\n", createUserQuery)
+
+	_, err := repo.db.Query(createUserQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while inserting the user into the database")
+		return nil, fcerr
+	}
+
+	checkUser, err := repo.GetUserByTempMatch(u.TempMatch)
+	if err != nil {
+		fmt.Println("Trying to CreateUser, seem to have hit a snag. Got an error when checking what we just put in")
+		fcerr := fcerr.NewInternalServerError("Error while checking the user that was created")
+		return nil, fcerr
+	}
+
+	return checkUser, nil
 }

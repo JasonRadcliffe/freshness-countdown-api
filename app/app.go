@@ -146,6 +146,7 @@ func LoginSuccess(c *gin.Context) {
 			c.AbortWithStatus(http.StatusForbidden)
 		} else {
 			fmt.Println("Got a verified user!!!!!!", currentUser)
+
 			successData := []byte("<h1>Success!</h1>")
 			c.Data(200, "text/html", successData)
 		}
