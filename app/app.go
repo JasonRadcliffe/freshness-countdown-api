@@ -55,6 +55,8 @@ func init() {
 		ClientSecret: config.OAuthConfig.ClientSecret,
 		RedirectURL:  "https://fcapi.jasonradcliffe.com/success",
 		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.profile",
+			"https://www.googleapis.com/auth/userinfo.email",
 			"openid",
 		},
 		Endpoint: google.Endpoint,
