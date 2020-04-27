@@ -374,5 +374,9 @@ func (h *handler) DeleteUser(c *gin.Context) {
 func numGenerator() string {
 	n := make([]byte, 32)
 	rand.Read(n)
-	return base64.StdEncoding.EncodeToString(n)
+	fmt.Println("Old way:", base64.StdEncoding.EncodeToString(n))
+	fmt.Println("New way:", base64.URLEncoding.EncodeToString(n))
+
+	return base64.URLEncoding.EncodeToString(n)
+
 }
