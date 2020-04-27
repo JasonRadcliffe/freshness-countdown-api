@@ -1,6 +1,8 @@
 package user
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
@@ -47,7 +49,7 @@ func (s *service) GetByEmail(email string) (*user.User, fcerr.FCErr) {
 func (s *service) Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr) {
 	var newUser user.User
 	createdDate := "2016-01-02T15:04:05"
-	tempMatch := "JASON23424"
+	tempMatch := s.GenerateTempMatch()
 
 	newUser.Email = u.Email
 	newUser.FirstName = u.FirstName
@@ -66,4 +68,10 @@ func (s *service) Create(u user.OauthUser, aT string, rT string) (*user.User, fc
 	}
 
 	return receivedUser, nil
+}
+
+func (s *service) GenerateTempMatch() string {
+	n := make([]byte, 15)
+	rand.Read(n)
+	return base64.URLEncoding.EncodeToString(n)
 }
