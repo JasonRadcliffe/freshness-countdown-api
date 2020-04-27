@@ -167,7 +167,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 				}
 				fmt.Println("we just put a new user in the database!! with database user id:", receivedUser.UserID)
 			}
-			fmt.Println("We already have this user!!! database user id:", dbUser.UserID)
+			fmt.Println("We already have this user!!! database user id:", dbUser)
 
 			successData := []byte("<h1>Success!</h1>")
 			c.Data(200, "text/html", successData)
