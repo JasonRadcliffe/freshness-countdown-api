@@ -102,11 +102,26 @@ func (h *handler) Oauthlogin(c *gin.Context) {
 	fmt.Println("Running the Oauthlogin function")
 	oauthstate := numGenerator()
 	url := h.oauthConfig.AuthCodeURL(oauthstate, oauth2.AccessTypeOffline)
+	cookie := &http.Cookie{
+		Name:   "oauthstate",
+		Value:  oauthstate,
+		MaxAge: 120,
+		Secure: true,
+	}
+	http.SetCookie(c.Writer, cookie)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 //LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
 func (h *handler) LoginSuccess(c *gin.Context) {
+
+	receivedCookie, err := c.Cookie("oauthstate")
+	if err != nil {
+		fmt.Println("got an error when retrieving the cookie during loginSuccess()")
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	fmt.Println("In LoginSuccess - got the cookie:", receivedCookie)
+
 	receivedState := c.Request.FormValue("state")
 	if receivedState != oauthstate {
 		fmt.Println("receivedState:", receivedState, "did not equal oauthstate:", oauthstate)
