@@ -158,6 +158,9 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 
 			dbUser, err := h.userService.GetByEmail(currentUser.Email)
 			if err != nil {
+				fmt.Println("was not able to check the database for the user on login success")
+				c.AbortWithStatus(http.StatusInternalServerError)
+			} else if dbUser.UserID <= 0 {
 				fmt.Println("loginSuccess could not find this user in the database! We should add them!!")
 				receivedUser, err := h.userService.Create(currentUser, token.AccessToken, token.RefreshToken)
 				if err != nil {
@@ -166,6 +169,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 
 				}
 				fmt.Println("we just put a new user in the database!! with database user id:", receivedUser.UserID)
+
 			}
 			fmt.Println("We already have this user!!! database user id:", dbUser)
 
