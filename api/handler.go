@@ -123,7 +123,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 	fmt.Println("In LoginSuccess - got the cookie:", receivedCookie)
 
 	receivedState := c.Request.FormValue("state")
-	if receivedState != oauthstate {
+	if receivedState != receivedCookie {
 		fmt.Println("receivedState:", receivedState, "did not equal oauthstate:", oauthstate)
 		c.AbortWithStatus(http.StatusForbidden)
 	} else {
