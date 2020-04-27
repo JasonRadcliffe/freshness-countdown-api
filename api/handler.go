@@ -28,6 +28,8 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
+	GetDishesWithAccessToken(*gin.Context)
+
 	GetDishes(*gin.Context)
 	GetDishHandler(*gin.Context)
 	GetDishByID(*gin.Context)
@@ -184,6 +186,25 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 //^^^^^^^Dish Section ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
+	var dishes *dishDomain.Dishes
+	var err fcerr.FCErr
+	fmt.Println("\n\n\nRunning the Alexa Test function:")
+	accessToken := c.Request.FormValue("access_token_jason")
+	fmt.Println("We got this access token from Alexa:", accessToken)
+
+	dishes, err = h.dishService.GetAll()
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
+		fmt.Println("could not handle the GetDishes route")
+		return
+	}
+	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	c.JSON(200, gin.H{
+		"message": dishes,
+	})
+}
 
 //GetDishes gets all the dishes the active user has
 func (h *handler) GetDishes(c *gin.Context) {
