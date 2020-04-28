@@ -188,21 +188,27 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 //^^^^^^^Dish Section ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
-	var dishes *dishDomain.Dishes
-	var err fcerr.FCErr
+
 	fmt.Println("\n\n\nRunning the Alexa Test function:")
 	accessToken := c.Request.FormValue("access_token_jason")
 	fmt.Println("We got this access token from Alexa:", accessToken)
 
-	dishes, err = h.dishService.GetAll()
+	response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + accessToken)
 	if err != nil {
-		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
-		fmt.Println("could not handle the GetDishes route")
-		return
+		fmt.Println("error when getting the userinfo with the access token")
+		c.AbortWithStatus(http.StatusInternalServerError)
 	}
-	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	defer response.Body.Close()
+
+	contents, error := ioutil.ReadAll(response.Body)
+	if error != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
+	json.Unmarshal(contents, &currentUser)
+	fmt.Println("Here is the current User we got with the access token: ", currentUser)
 	c.JSON(200, gin.H{
-		"message": dishes,
+		"message": "The emial address we got from the alexa service is: " + currentUser.Email,
 	})
 }
 
