@@ -11,6 +11,7 @@ type User struct {
 	AccessToken  string `json:"AccessToken"`
 	RefreshToken string `json:"RefreshToken"`
 	TempMatch    string `json:"TempMatch"`
+	AlexaUserID  string `json:"alexa_user_id"`
 }
 
 //OauthUser is what will be populated upon receiving confirmation from Oauth Provider.
