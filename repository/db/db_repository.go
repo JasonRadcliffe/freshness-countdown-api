@@ -32,13 +32,15 @@ const getUserByIDBase = `SELECT * FROM user WHERE id = %d`
 
 const getUserByEmailBase = `SELECT * FROM user WHERE email = "%s"`
 
+const getUserByAlexaBase = `SELECT * FROM user WHERE alexa_user_id = "%s"`
+
 const getUserByTempMatchBase = `SELECT * FROM user WHERE temp_match = "%s"`
 
-const createUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, temp_match) ` +
-	`VALUES("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")`
+const createUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, alexa_user_id, temp_match) ` +
+	`VALUES("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")`
 
 const updateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_name = "%s", full_name = "%s", ` +
-	`created_date = "%s", access_token = "%s", refresh_token = "%s", temp_match = "%s" `
+	`created_date = "%s", access_token = "%s", refresh_token = "%s", alexa_user_id = "%s", temp_match = "%s" `
 
 const deleteUserBase = `DELETE FROM user WHERE id=%d`
 
@@ -67,6 +69,7 @@ type Repository interface {
 	GetUsers() (*user.Users, fcerr.FCErr)
 	GetUserByID(int) (*user.User, fcerr.FCErr)
 	GetUserByEmail(string) (*user.User, fcerr.FCErr)
+	GetUserByAlexa(string) (*user.User, fcerr.FCErr)
 	GetUserByTempMatch(string) (*user.User, fcerr.FCErr)
 	CreateUser(user.User) (*user.User, fcerr.FCErr)
 	UpdateUser(user.User) (*user.User, fcerr.FCErr)
@@ -214,6 +217,39 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 	var resultingUser user.User
 
 	rows, err := repo.db.Query(getUserByEmailQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by email")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+	fmt.Println("now about to check the rows returned:")
+	for rows.Next() {
+		var cUser user.User
+		fmt.Println("Inside the result set loop. currentUser:", cUser)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
+			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current user scanned. currentUser:", cUser)
+		resultingUser = cUser
+
+	}
+
+	return &resultingUser, nil
+}
+
+//GetUserByAlexa gets a user from the database with the given alexa_user_id.
+func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
+	getUserByAlexaQuery := fmt.Sprintf(getUserByAlexaBase, aID)
+	fmt.Println("About to run this Query on the database:\n", getUserByAlexaQuery)
+	var resultingUser user.User
+
+	rows, err := repo.db.Query(getUserByAlexaQuery)
 	if err != nil {
 		fmt.Println("got an error on the Query")
 		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by email")
