@@ -311,7 +311,7 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 
 //CreateUser adds a user to the database after being populated by the service.
 func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
-	createUserQuery := fmt.Sprintf(createUserBase, u.Email, u.FirstName, u.LastName, u.FullName, u.CreatedDate, u.AccessToken, u.RefreshToken, u.TempMatch)
+	createUserQuery := fmt.Sprintf(createUserBase, u.Email, u.FirstName, u.LastName, u.FullName, u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch)
 	fmt.Println("About to run this Query on the database:\n", createUserQuery)
 
 	_, err := repo.db.Query(createUserQuery)
