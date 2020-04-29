@@ -24,5 +24,8 @@ type OauthUser struct {
 	UserID        int
 }
 
+//Users is a slice of type User
+type Users []User
+
 //Contains methods and validators that a user would know about themselves
 //

@@ -37,6 +37,9 @@ const getUserByTempMatchBase = `SELECT * FROM user WHERE temp_match = "%s"`
 const createUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, temp_match) ` +
 	`VALUES("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")`
 
+const updateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_name = "%s", full_name = "%s", ` +
+	`created_date = "%s", access_token = "%s", refresh_token = "%s", temp_match = "%s" `
+
 const deleteUserBase = `DELETE FROM user WHERE id=%d`
 
 const getAllStorageBase = `SELECT * FROM storage`
@@ -56,12 +59,26 @@ const getStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
 type Repository interface {
 	GetDishes() (*dish.Dishes, fcerr.FCErr)
 	GetDishByID(int) (*dish.Dish, fcerr.FCErr)
+	GetDishByTempMatch(string) (*dish.Dish, fcerr.FCErr)
 	CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
-	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
+	UpdateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
+	DeleteDish(dish.Dish) fcerr.FCErr
+
+	GetUsers() (*user.Users, fcerr.FCErr)
 	GetUserByID(int) (*user.User, fcerr.FCErr)
 	GetUserByEmail(string) (*user.User, fcerr.FCErr)
 	GetUserByTempMatch(string) (*user.User, fcerr.FCErr)
 	CreateUser(user.User) (*user.User, fcerr.FCErr)
+	UpdateUser(user.User) (*user.User, fcerr.FCErr)
+	DeleteUser(user.User) fcerr.FCErr
+
+	GetStorage(int) (*storage.Storages, fcerr.FCErr)
+	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
+	CreateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
+	UpdateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
+	DeleteStorage(storage.Storage) fcerr.FCErr
+
+	GetStorageDishes(int) (*dish.Dishes, fcerr.FCErr)
 }
 
 type repository struct {
@@ -131,14 +148,30 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 	return &resultingDish, nil
 }
 
-func (repo *repository) CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr) {
+//GetDishByTempMatch takes a string and queries the mysql database for a dish with this temp_match.
+func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) {
+	var resultingDish dish.Dish
+	return &resultingDish, nil
+}
+
+//CreateDish takes a dish object and tries to add it to the database
+func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	return nil, nil
 }
 
-//GetStorageByID takes an int and queries the mysql database for a storage with this id.
-func (repo *repository) GetStorageByID(id int) (*storage.Storage, fcerr.FCErr) {
-	var resultingStorage storage.Storage
-	return &resultingStorage, nil
+//UpdateDish takes a dish object and tries to update the existing dish in the database to match
+func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
+	return nil, nil
+}
+
+//DeleteDish takes a dish object and tries to delete the existing dish from the database
+func (repo *repository) DeleteDish(d dish.Dish) fcerr.FCErr {
+	return nil
+}
+
+//GetUsers queries the database and returns a slice of User objects
+func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
+	return nil, nil
 }
 
 //GetUserByID gets a user from the database with the given ID.
@@ -208,8 +241,8 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 }
 
 //GetUserByTempMatch gets a user from the database with the given email.
-func (repo *repository) GetUserByTempMatch(tempMatch string) (*user.User, fcerr.FCErr) {
-	getUserByTempMatchQuery := fmt.Sprintf(getUserByTempMatchBase, tempMatch)
+func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) {
+	getUserByTempMatchQuery := fmt.Sprintf(getUserByTempMatchBase, tm)
 	fmt.Println("About to run this Query on the database:\n", getUserByTempMatchQuery)
 	var resultingUser user.User
 
@@ -260,4 +293,46 @@ func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
 	}
 
 	return checkUser, nil
+}
+
+//UpdateUser takes a user object and tries to update the existing user in the database to match
+func (repo *repository) UpdateUser(u user.User) (*user.User, fcerr.FCErr) {
+	return nil, nil
+}
+
+//DeleteUser takes a user object and tries to delete the existing user from the database
+func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
+	return nil
+}
+
+//GetStorage takes an int of a user id and returns the list of storage objects owned by that user.
+func (repo *repository) GetStorage(userID int) (*storage.Storages, fcerr.FCErr) {
+	var resultingStorages storage.Storages
+	return &resultingStorages, nil
+}
+
+//GetStorageByID takes an int and queries the mysql database for a storage with this id.
+func (repo *repository) GetStorageByID(id int) (*storage.Storage, fcerr.FCErr) {
+	var resultingStorage storage.Storage
+	return &resultingStorage, nil
+}
+
+//CreateStorage takes a storage object and tries to add it to the database
+func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
+	return nil, nil
+}
+
+//UpdateStorage takes a storage object and tries to update the existing storage in the database to match
+func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
+	return nil, nil
+}
+
+//DeleteStorage takes a storage object and tries to delete the existing storage from the database
+func (repo *repository) DeleteStorage(s storage.Storage) fcerr.FCErr {
+	return nil
+}
+
+//GetStorageDishes takes a storage object and tries to update the existing storage in the database to match
+func (repo *repository) GetStorageDishes(s int) (*dish.Dishes, fcerr.FCErr) {
+	return nil, nil
 }
