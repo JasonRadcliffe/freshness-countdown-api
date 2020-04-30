@@ -1,13 +1,51 @@
 package db
 
 import (
+	"net/http"
 	"testing"
 
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDb_NewRepository_CantConnect(t *testing.T) {
+	_, err := NewRepository("")
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while connecting to the mysql database", err.Message())
+
+}
+
 func TestDb_GetDishes(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "").
+		AddRow(1, 2, 3, "Peas", "Some peas we got at the store", "2007-01-02T15:04:05", "2021-10-13T08:00", 1, "", -1, "")
+
+	mock.ExpectQuery("SELECT * FROM dish").WillReturnRows(rows)
+
+	resultingDishes, err := repo.GetDishes()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(*resultingDishes))
+
+	resultingDish1 := (*resultingDishes)[0]
+	resultingDish2 := (*resultingDishes)[1]
+
+	assert.Equal(t, "Carrots", resultingDish1.Title)
+	assert.Equal(t, "Peas", resultingDish2.Title)
+
+	assert.Equal(t, 1, resultingDish1.UserID)
+	assert.Equal(t, 2, resultingDish2.UserID)
 }
 func TestDb_GetDishes_QueryError(t *testing.T) {
 	assert.Equal(t, "", "")

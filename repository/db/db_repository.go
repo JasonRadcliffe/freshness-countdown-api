@@ -114,10 +114,11 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
-	rows, err := repo.db.Query(`Select * FROM dish`)
-	fmt.Println("now after doing the Query")
+	getDishesQuery := fmt.Sprintf(getDishesBase)
+	rows, err := repo.db.Query(getDishesQuery)
+	fmt.Println("now after doing the Query:", getDishesQuery)
 	if err != nil {
-		fmt.Println("got an error on the Query")
+		fmt.Println("got an error on the Query:", err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while retrieving dishes from the database")
 		return nil, fcerr
 	}
