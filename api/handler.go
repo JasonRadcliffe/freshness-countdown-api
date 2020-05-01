@@ -122,6 +122,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 	if err != nil {
 		fmt.Println("got an error when retrieving the cookie during loginSuccess()")
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 	fmt.Println("In LoginSuccess - got the cookie:", receivedCookie)
 
@@ -129,18 +130,21 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 	if receivedState != receivedCookie {
 		fmt.Println("receivedState:", receivedState, "did not equal oauthstate:", oauthstate)
 		c.AbortWithStatus(http.StatusForbidden)
+		return
 	} else {
 		code := c.Request.FormValue("code")
 		token, err := h.oauthConfig.Exchange(c, code)
 		if err != nil {
 			fmt.Println("error when exchanging the token")
 			c.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 
 		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
 		if err != nil {
 			fmt.Println("error when getting the userinfo with the access token")
 			c.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 
 		defer response.Body.Close()
@@ -148,6 +152,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		contents, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 
 		json.Unmarshal(contents, &currentUser)
@@ -156,6 +161,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		if currentUser.VerifiedEmail == false {
 			fmt.Println("current user.VerifiedEmail is false. CurrentUser:", currentUser)
 			c.AbortWithStatus(http.StatusForbidden)
+			return
 		} else {
 			fmt.Println("Got a verified user!!!!!!", currentUser)
 
@@ -163,12 +169,14 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 			if err != nil {
 				fmt.Println("was not able to check the database for the user on login success")
 				c.AbortWithStatus(http.StatusInternalServerError)
+				return
 			} else if dbUser.UserID <= 0 {
 				fmt.Println("loginSuccess could not find this user in the database! We should add them!!")
 				receivedUser, err := h.userService.Create(currentUser, token.AccessToken, token.RefreshToken)
 				if err != nil {
 					fmt.Println("Was not successful in adding a new user to the database!")
 					c.AbortWithStatus(http.StatusInternalServerError)
+					return
 
 				}
 				fmt.Println("we just put a new user in the database!! with database user id:", receivedUser.UserID)
@@ -198,12 +206,14 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 	if err != nil {
 		fmt.Println("error when getting the userinfo with the access token")
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 	defer response.Body.Close()
 
 	contents, error := ioutil.ReadAll(response.Body)
 	if error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 
 	json.Unmarshal(contents, &currentUser)
@@ -250,10 +260,12 @@ func (h *handler) GetDishByID(c *gin.Context) {
 	if err != nil {
 		fmt.Println("got an error when parsing the dishID url param")
 		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
 	resultingDish, err := h.dishService.GetByID(dishID)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 	c.JSON(200, gin.H{
 		"message": "NEW----ran the GetDish function from the new handler for this dish:" + dishIDstr +
