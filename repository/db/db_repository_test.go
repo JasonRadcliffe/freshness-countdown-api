@@ -201,7 +201,7 @@ func TestDb_GetDishByTempMatch(t *testing.T) {
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
 		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "9r842da351")
 
-	mock.ExpectQuery(`Select * FROM dish WHERE temp_match ="9r842da351"`).WillReturnRows(rows)
+	mock.ExpectQuery(`Select * FROM dish WHERE temp_match = "9r842da351"`).WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByTempMatch("9r842da351")
 

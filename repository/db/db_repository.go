@@ -163,7 +163,7 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 	fmt.Println("now after doing the Query:", getDishByIDQuery)
 	if err != nil {
 		fmt.Println("got an error on the Query:", err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while retrieving dishe from the database")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving dish from the database")
 		return nil, fcerr
 	}
 	defer rows.Close()
@@ -204,6 +204,47 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 //GetDishByTempMatch takes a string and queries the mysql database for a dish with this temp_match.
 func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
+	getDishByTempMatchQuery := fmt.Sprintf(getDishByTempMatchBase, tm)
+	fmt.Println("about to run this query in GetDishByTempMatch:", getDishByTempMatchQuery)
+
+	rows, err := repo.db.Query(getDishByTempMatchQuery)
+	fmt.Println("now after doing the Query:", getDishByTempMatchQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query:", err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while retrieving dish from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+	fmt.Println("now about to check the rows returned:")
+	var count = 0
+	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
+
+		var currentDish dish.Dish
+		fmt.Println("Inside the result set loop. currentDish:", currentDish)
+		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
+			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fmt.Println("&currentDish.DishID:", currentDish.DishID)
+			fmt.Println("&currentDish.TempMatch:", currentDish.TempMatch)
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current dish scanned. currentDish:", currentDish)
+		resultingDish = currentDish
+
+	}
+	if count == 0 {
+		fcerr := fcerr.NewNotFoundError("Database could not find a dish with this temp match")
+		return nil, fcerr
+	}
 	return &resultingDish, nil
 }
 
