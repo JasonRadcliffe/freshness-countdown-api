@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 
@@ -48,11 +49,45 @@ func TestDb_GetDishes(t *testing.T) {
 	assert.Equal(t, 2, resultingDish2.UserID)
 }
 func TestDb_GetDishes_QueryError(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	newErr := errors.New("Error 1146: Table 'food_db.dishs' doesn't exist")
+	mock.ExpectQuery("SELECT * FROM dishs").WillReturnError(newErr)
+	resultingDishes, err := repo.GetDishes()
+
+	assert.Nil(t, resultingDishes)
+	assert.NotNil(t, err)
+	assert.Equal(t, "Error while retrieving dishes from the database", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDb_GetDishes_RowScanError(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow("SHOULDBEINT", 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+
+	mock.ExpectQuery("SELECT * FROM dish").WillReturnRows(rows)
+
+	resultingDishes, err := repo.GetDishes()
+
+	assert.Nil(t, resultingDishes)
+	assert.NotNil(t, err)
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDb_GetDishByID(t *testing.T) {

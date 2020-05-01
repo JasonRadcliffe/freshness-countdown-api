@@ -114,7 +114,7 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
-	getDishesQuery := fmt.Sprintf(getDishesBase + "s")
+	getDishesQuery := fmt.Sprintf(getDishesBase)
 	rows, err := repo.db.Query(getDishesQuery)
 	fmt.Println("now after doing the Query:", getDishesQuery)
 	if err != nil {
@@ -135,7 +135,7 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 			fmt.Println("got an error from the rows.Scan.")
 			fmt.Println("&currentDish.DishID:", currentDish.DishID)
 			fmt.Println("&currentDish.TempMatch:", currentDish.TempMatch)
-			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
 			return nil, fcerr
 		}
 		fmt.Println("now after the current dish scanned. currentDish:", currentDish)
