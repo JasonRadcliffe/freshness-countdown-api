@@ -148,19 +148,41 @@ func TestDb_GetDishByID_NotFound(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
-		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+		"expire_date", "priority", "dish_type", "portions", "temp_match"})
 
 	mock.ExpectQuery("SELECT * FROM dish WHERE id = 1").WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByID(1)
 
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingDish)
 
-	assert.Equal(t, 1, resultingDish.DishID)
-	assert.Equal(t, "Carrots", resultingDish.Title)
-	assert.Equal(t, 2, resultingDish.UserID)
-	assert.Equal(t, 3, resultingDish.StorageID)
+	assert.Equal(t, http.StatusNotFound, err.Status())
+	assert.Equal(t, "Database could not find a dish with this ID", err.Message())
+}
+
+func TestDb_GetDishByID_RowScanError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(1, "SHOULD BE INT", 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+
+	mock.ExpectQuery("SELECT * FROM dish WHERE id = 1").WillReturnRows(rows)
+
+	resultingDish, err := repo.GetDishByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingDish)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
 }
 
 func TestDb_GetDishByID_FoundMultiple(t *testing.T) {
@@ -212,6 +234,80 @@ func TestDb_GetDishByTempMatch(t *testing.T) {
 	assert.Equal(t, 2, resultingDish.UserID)
 	assert.Equal(t, 3, resultingDish.StorageID)
 	assert.Equal(t, "9r842da351", resultingDish.TempMatch)
+}
+
+func TestDb_GetDishByTempMatch_NotFound(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"})
+
+	mock.ExpectQuery(`Select * FROM dish WHERE temp_match = "9r842da351"`).WillReturnRows(rows)
+
+	resultingDish, err := repo.GetDishByTempMatch("9r842da351")
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingDish)
+
+	assert.Equal(t, http.StatusNotFound, err.Status())
+	assert.Equal(t, "Database could not find a dish with this temp match", err.Message())
+
+}
+
+func TestDb_GetDishByTempMatch_RowScanError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(1, "SHOULD BE INT", 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+
+	mock.ExpectQuery(`Select * FROM dish WHERE temp_match = "9r842da351"`).WillReturnRows(rows)
+
+	resultingDish, err := repo.GetDishByTempMatch("9r842da351")
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingDish)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
+
+}
+
+func TestDb_GetDishByTempMatch_FoundMultiple(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "9r842da351").
+		AddRow(4, 2, 3, "Carrots", "Some carrots we got at the store a second time", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "9r842da351")
+
+	mock.ExpectQuery(`Select * FROM dish WHERE temp_match = "9r842da351"`).WillReturnRows(rows)
+
+	resultingDish, err := repo.GetDishByTempMatch("9r842da351")
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingDish)
+
+	assert.Equal(t, "Database returned more than 1 row when only 1 was expected", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDb_CreateDish(t *testing.T) {
