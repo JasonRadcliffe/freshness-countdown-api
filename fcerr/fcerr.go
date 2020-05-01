@@ -50,3 +50,13 @@ func NewInternalServerError(message string) FCErr {
 		ErrError:   err,
 	}
 }
+
+//NewNotFoundError takes a message string and gives you a FCErr object with the status of http.StatusNotFound.
+func NewNotFoundError(message string) FCErr {
+	err := fmt.Sprint("Message: ", message, " - Status: ", http.StatusNotFound)
+	return fcerr{
+		ErrMessage: message,
+		ErrStatus:  http.StatusNotFound,
+		ErrError:   err,
+	}
+}

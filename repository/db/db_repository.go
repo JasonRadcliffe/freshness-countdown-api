@@ -186,8 +186,15 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 		resultingDish = currentDish
 
 	}
+	if count == 1 {
+		return &resultingDish, nil
+	} else if count == 0 {
+		fcerr := fcerr.NewNotFoundError("Database could not find a dish with this ID")
+		return nil, fcerr
+	}
+	fcerr := fcerr.NewInternalServerError("Database found more than one result")
+	return nil, fcerr
 
-	return &resultingDish, nil
 }
 
 //GetDishByTempMatch takes a string and queries the mysql database for a dish with this temp_match.

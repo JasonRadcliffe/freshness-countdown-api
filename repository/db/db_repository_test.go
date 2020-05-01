@@ -119,6 +119,10 @@ func TestDb_GetDishByID_NotFound(t *testing.T) {
 	assert.Equal(t, "", "")
 }
 
+func TestDb_GetDishByID_FoundMultiple(t *testing.T) {
+	assert.Equal(t, "", "")
+}
+
 func TestDb_GetDishByTempMatch(t *testing.T) {
 	assert.Equal(t, "", "")
 }
