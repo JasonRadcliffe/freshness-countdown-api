@@ -149,6 +149,8 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 //GetDishByID takes an int and queries the mysql database for a dish with this id.
 func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
+	getDishByIDQuery := fmt.Sprintf(getDishByIDBase, id)
+	fmt.Println("about to run this query in GetDishByID:", getDishByIDQuery)
 	return &resultingDish, nil
 }
 
