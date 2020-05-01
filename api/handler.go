@@ -248,6 +248,7 @@ func (h *handler) GetDishByID(c *gin.Context) {
 	fmt.Println("NEW____-----Running the GetDishByID function from the new handler for this dish:", dishIDstr)
 	dishID, err := strconv.Atoi(dishIDstr)
 	if err != nil {
+		fmt.Println("got an error when parsing the dishID url param")
 		c.AbortWithStatus(http.StatusBadRequest)
 	}
 	resultingDish, err := h.dishService.GetByID(dishID)
