@@ -11,7 +11,7 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
-const getDishesBase = `SELECT * FROM dish`
+const getDishesBase = `SELECT * FROM dish2`
 
 const getDishByIDBase = `SELECT * FROM dish WHERE id = %d`
 
@@ -125,7 +125,9 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	defer rows.Close()
 	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
+	count := 0
 	for rows.Next() {
+		count++
 		var currentDish dish.Dish
 		fmt.Println("Inside the result set loop. currentDish:", currentDish)
 		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
@@ -141,6 +143,10 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 		fmt.Println("now after the current dish scanned. currentDish:", currentDish)
 		resultDishes = append(resultDishes, currentDish)
 
+	}
+	if count < 1 {
+		fcerr := fcerr.NewNotFoundError("Database could not find any dishes")
+		return nil, fcerr
 	}
 
 	return &resultDishes, nil
