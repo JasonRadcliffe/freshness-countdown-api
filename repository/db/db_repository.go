@@ -11,7 +11,7 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
-const getDishesBase = `SELECT * FROM dish2`
+const getDishesBase = `SELECT * FROM dish`
 
 const getDishByIDBase = `SELECT * FROM dish WHERE id = %d`
 

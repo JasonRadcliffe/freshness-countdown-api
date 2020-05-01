@@ -59,8 +59,7 @@ func TestDb_GetDishes_NotFound(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
-		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		"expire_date", "priority", "dish_type", "portions", "temp_match"})
 
 	mock.ExpectQuery("SELECT * FROM dish").WillReturnRows(rows)
 
@@ -68,6 +67,8 @@ func TestDb_GetDishes_NotFound(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDishes)
+	assert.Equal(t, "Database could not find any dishes", err.Message())
+	assert.Equal(t, http.StatusNotFound, err.Status())
 }
 
 func TestDb_GetDishes_QueryError(t *testing.T) {
