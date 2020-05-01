@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 	"golang.org/x/oauth2"
@@ -243,10 +244,19 @@ func (h *handler) GetDishHandler(c *gin.Context) {
 
 //GetDishByID gets a specific dish if it belongs to the current user
 func (h *handler) GetDishByID(c *gin.Context) {
-	dishID := c.Param("dish_id")
-	fmt.Println("NEW____-----Running the GetDishByID function from the new handler for this dish:", dishID)
+	dishIDstr := c.Param("dish_id")
+	fmt.Println("NEW____-----Running the GetDishByID function from the new handler for this dish:", dishIDstr)
+	dishID, err := strconv.Atoi(dishIDstr)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
+	resultingDish, err := h.dishService.GetByID(dishID)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetDish function from the new handler for this dish:" + dishID,
+		"message": "NEW----ran the GetDish function from the new handler for this dish:" + dishIDstr +
+			" and got:" + resultingDish.Title,
 	})
 }
 
