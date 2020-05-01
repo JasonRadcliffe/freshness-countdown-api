@@ -114,7 +114,7 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
-	getDishesQuery := fmt.Sprintf(getDishesBase)
+	getDishesQuery := fmt.Sprintf(getDishesBase + "s")
 	rows, err := repo.db.Query(getDishesQuery)
 	fmt.Println("now after doing the Query:", getDishesQuery)
 	if err != nil {
