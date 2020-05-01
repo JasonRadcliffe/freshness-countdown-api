@@ -146,6 +146,7 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	}
 	if count < 1 {
 		fcerr := fcerr.NewNotFoundError("Database could not find any dishes")
+		fmt.Println("Database could not find any dishes")
 		return nil, fcerr
 	}
 
