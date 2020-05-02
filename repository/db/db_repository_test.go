@@ -1651,7 +1651,7 @@ func TestDb_DeleteUser_QueryError(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
-	assert.Equal(t, "Error while deleting the dish from the database", err.Message())
+	assert.Equal(t, "Error while deleting the user from the database", err.Message())
 }
 
 func TestDb_DeleteUser_CheckError(t *testing.T) {
