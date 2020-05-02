@@ -11,50 +11,70 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
+//GetDishesBase is the Query for GetDishes().
 const GetDishesBase = `SELECT * FROM dish`
 
+//GetDishByIDBase can be used with fmt.Sprintf() to get the Query for GetDishByID().
 const GetDishByIDBase = `SELECT * FROM dish WHERE id = %d`
 
+//GetDishByTempMatchBase can be used with fmt.Sprintf() to get the Query for GetDishByTempMatch().
 const GetDishByTempMatchBase = `Select * FROM dish WHERE temp_match = "%s"`
 
+//CreateDishBase can be used with fmt.Sprintf() to get the Query for CreateDish().
 const CreateDishBase = `INSERT INTO dish ` +
 	`(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match) ` +
 	`VALUES(%d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s")`
 
+//UpdateDishBase can be used with fmt.Sprintf() to get the Query for UpdateDish().
 const UpdateDishBase = `UPDATE dish SET storage_id = "%s", title = "%s", description = "%s", expire_date = "%s", ` +
 	`priority = "%s", dish_type = "%s", portions = %d WHERE id=%d`
 
+//DeleteDishBase can be used with fmt.Sprintf() to get the Query for DeleteDish().
 const DeleteDishBase = `DELETE FROM dish WHERE id=%d`
 
+//GetUsersBase is the Query for GetUsers().
 const GetUsersBase = `SELECT * FROM user`
 
+//GetUserByIDBase can be used with fmt.Sprintf() to get the Query for GetUserByID().
 const GetUserByIDBase = `SELECT * FROM user WHERE id = %d`
 
+//GetUserByEmailBase can be used with fmt.Sprintf() to get the Query for GetUserByEmail().
 const GetUserByEmailBase = `SELECT * FROM user WHERE email = "%s"`
 
+//GetUserByAlexaBase can be used with fmt.Sprintf() to get the Query for GetUserByAlexa().
 const GetUserByAlexaBase = `SELECT * FROM user WHERE alexa_user_id = "%s"`
 
+//GetUserByTempMatchBase can be used with fmt.Sprintf() to get the Query for GetUserByTempMatch().
 const GetUserByTempMatchBase = `SELECT * FROM user WHERE temp_match = "%s"`
 
+//CreateUserBase can be used with fmt.Sprintf() to get the Query for CreateUser().
 const CreateUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, alexa_user_id, temp_match) ` +
 	`VALUES("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")`
 
+//UpdateUserBase can be used with fmt.Sprintf() to get the Query for UpdateUser().
 const UpdateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_name = "%s", full_name = "%s", ` +
 	`created_date = "%s", access_token = "%s", refresh_token = "%s", alexa_user_id = "%s", temp_match = "%s" `
 
+//DeleteUserBase can be used with fmt.Sprintf() to get the Query for DeleteUser().
 const DeleteUserBase = `DELETE FROM user WHERE id=%d`
 
+//GetAllStorageBase can be used with fmt.Sprintf() to get the Query for GetAllStorage().
 const GetAllStorageBase = `SELECT * FROM storage`
 
+//GetStorageByIDBase can be used with fmt.Sprintf() to get the Query for GetStorageByID().
 const GetStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
 
+//CreateStorageBase can be used with fmt.Sprintf() to get the Query for CreateStorage().
 const CreateStorageBase = `INSERT INTO storage (user_id, title, description, temp_match) ` +
 	`VALUES(%d, "%s", "%s", "%s")`
 
+//UpdateStorageBase can be used with fmt.Sprintf() to get the Query for UpdateStorage().
 const UpdateStorageBase = `UPDATE storage SET title = "%s", description = "%s" WHERE id=%d`
 
+//DeleteStorageBase can be used with fmt.Sprintf() to get the Query for DeleteStorage().
 const DeleteStorageBase = `DELETE FROM storage WHERE id=%d`
 
+//GetStorageDishesBase can be used with fmt.Sprintf() to get the Query for GetStorageDishes().
 const GetStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
@@ -114,7 +134,7 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
-	getDishesQuery := fmt.Sprintf(getDishesBase)
+	getDishesQuery := fmt.Sprintf(GetDishesBase)
 	rows, err := repo.db.Query(getDishesQuery)
 	fmt.Println("now after doing the Query:", getDishesQuery)
 	if err != nil {
@@ -156,7 +176,7 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 //GetDishByID takes an int and queries the mysql database for a dish with this id.
 func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
-	getDishByIDQuery := fmt.Sprintf(getDishByIDBase, id)
+	getDishByIDQuery := fmt.Sprintf(GetDishByIDBase, id)
 	fmt.Println("about to run this query in GetDishByID:", getDishByIDQuery)
 
 	rows, err := repo.db.Query(getDishByIDQuery)
@@ -204,7 +224,7 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 //GetDishByTempMatch takes a string and queries the mysql database for a dish with this temp_match.
 func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
-	getDishByTempMatchQuery := fmt.Sprintf(getDishByTempMatchBase, tm)
+	getDishByTempMatchQuery := fmt.Sprintf(GetDishByTempMatchBase, tm)
 	fmt.Println("about to run this query in GetDishByTempMatch:", getDishByTempMatchQuery)
 
 	rows, err := repo.db.Query(getDishByTempMatchQuery)
@@ -250,7 +270,7 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 
 //CreateDish takes a dish object and tries to add it to the database
 func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
-	createDishQuery := fmt.Sprintf(createDishBase, d.UserID, d.StorageID, d.Title, d.Description,
+	createDishQuery := fmt.Sprintf(CreateDishBase, d.UserID, d.StorageID, d.Title, d.Description,
 		d.CreatedDate, d.ExpireDate, d.Priority, d.DishType, d.Portions, d.TempMatch)
 
 	fmt.Println("About to run this Query on the database:\n", createDishQuery)
@@ -290,7 +310,7 @@ func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
 
 //GetUserByID gets a user from the database with the given ID.
 func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
-	getUserByIDQuery := fmt.Sprintf(getUserByIDBase, id)
+	getUserByIDQuery := fmt.Sprintf(GetUserByIDBase, id)
 	fmt.Println("About to run this Query on the database:\n", getUserByIDQuery)
 	var resultingUser user.User
 
@@ -323,7 +343,7 @@ func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
 
 //GetUserByEmail gets a user from the database with the given email.
 func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
-	getUserByEmailQuery := fmt.Sprintf(getUserByEmailBase, email)
+	getUserByEmailQuery := fmt.Sprintf(GetUserByEmailBase, email)
 	fmt.Println("About to run this Query on the database:\n", getUserByEmailQuery)
 	var resultingUser user.User
 
@@ -356,7 +376,7 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 
 //GetUserByAlexa gets a user from the database with the given alexa_user_id.
 func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
-	getUserByAlexaQuery := fmt.Sprintf(getUserByAlexaBase, aID)
+	getUserByAlexaQuery := fmt.Sprintf(GetUserByAlexaBase, aID)
 	fmt.Println("About to run this Query on the database:\n", getUserByAlexaQuery)
 	var resultingUser user.User
 
@@ -389,7 +409,7 @@ func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
 
 //GetUserByTempMatch gets a user from the database with the given email.
 func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) {
-	getUserByTempMatchQuery := fmt.Sprintf(getUserByTempMatchBase, tm)
+	getUserByTempMatchQuery := fmt.Sprintf(GetUserByTempMatchBase, tm)
 	fmt.Println("About to run this Query on the database:\n", getUserByTempMatchQuery)
 	var resultingUser user.User
 
@@ -422,7 +442,7 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 
 //CreateUser adds a user to the database after being populated by the service.
 func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
-	createUserQuery := fmt.Sprintf(createUserBase, u.Email, u.FirstName, u.LastName, u.FullName, u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch)
+	createUserQuery := fmt.Sprintf(CreateUserBase, u.Email, u.FirstName, u.LastName, u.FullName, u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch)
 	fmt.Println("About to run this Query on the database:\n", createUserQuery)
 
 	_, err := repo.db.Query(createUserQuery)
