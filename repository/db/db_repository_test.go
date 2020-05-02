@@ -1209,7 +1209,145 @@ func TestDb_GetUserByAlexa_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_GetUserByTempMatch(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-01-02T15:04:05",
+		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "1v842d234523a",
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByTempMatch(nU.TempMatch)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingUser)
+
+	assert.Equal(t, nU.UserID, resultingUser.UserID)
+	assert.Equal(t, nU.Email, resultingUser.Email)
+	assert.Equal(t, nU.FirstName, resultingUser.FirstName)
+	assert.Equal(t, nU.LastName, resultingUser.LastName)
+	assert.Equal(t, nU.FullName, resultingUser.FullName)
+	assert.Equal(t, nU.CreatedDate, resultingUser.CreatedDate)
+	assert.Equal(t, nU.AccessToken, resultingUser.AccessToken)
+	assert.Equal(t, nU.RefreshToken, resultingUser.RefreshToken)
+	assert.Equal(t, nU.AlexaUserID, resultingUser.AlexaUserID)
+	assert.Equal(t, nU.TempMatch, resultingUser.TempMatch)
+
+}
+
+func TestDb_GetUserByTempMatch_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnError(errors.New("database error"))
+
+	resultingUser, err := repo.GetUserByTempMatch("qwertyuiop")
+
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while retrieving user from the database", err.Message())
+}
+
+func TestDb_GetUserByTempMatch_NotFound(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"})
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByTempMatch("qwertyuiop")
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingUser)
+
+	assert.Equal(t, http.StatusNotFound, err.Status())
+	assert.Equal(t, "Database could not find a user with this Temp Match", err.Message())
+}
+
+func TestDb_GetUserByTempMatch_RowScanError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow("SHOULDBEINT", "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByTempMatch("qwertyuiop")
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingUser)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
+}
+
+func TestDb_GetUserByTempMatch_FoundMultiple(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByTempMatch("qwertyuiop")
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingUser)
+
+	assert.Equal(t, "Database returned more than 1 row when only 1 was expected", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDb_CreateUser(t *testing.T) {
