@@ -593,6 +593,23 @@ func (repo *repository) UpdateUser(u user.User) (*user.User, fcerr.FCErr) {
 
 //DeleteUser takes a user object and tries to delete the existing user from the database
 func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
+	deleteUserQuery := fmt.Sprintf(DeleteUserBase, u.UserID)
+
+	_, err := repo.db.Query(deleteUserQuery)
+	if err != nil {
+		fmt.Println("got an error on the delete query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while deleting the user from the database")
+		return fcerr
+
+	}
+
+	returnedUser, err := repo.GetUserByID(u.UserID)
+	if err == nil {
+		fmt.Println("Expected an error here, but didn't get one!! User Email:" + returnedUser.Email)
+		fcerr := fcerr.NewInternalServerError("Error while deleting the user from the database, could not verify it was deleted.")
+		return fcerr
+	}
+
 	return nil
 }
 
