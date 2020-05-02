@@ -793,7 +793,7 @@ func TestDb_GetUserByID(t *testing.T) {
 
 	nU := &user.User{
 		UserID:       2,
-		1:            "nothing@gmail.com",
+		Email:        "nothing@gmail.com",
 		FirstName:    "Bob",
 		LastName:     "Nothing",
 		FullName:     "Bob Nothing",
