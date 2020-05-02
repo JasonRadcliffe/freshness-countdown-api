@@ -342,7 +342,44 @@ func (repo *repository) DeleteDish(d dish.Dish) fcerr.FCErr {
 
 //GetUsers queries the database and returns a slice of User objects
 func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
-	return nil, nil
+	fmt.Println("now at the beginning of the db_repository GetUsers()")
+	var resultingUsers user.Users
+	getUsersQuery := fmt.Sprintf(GetUsersBase)
+	rows, err := repo.db.Query(getUsersQuery)
+	fmt.Println("now after doing the Query:", getUsersQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query:", err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while retrieving users from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	//s := "Retrieved Records:\n"
+	fmt.Println("now about to check the rows returned:")
+	count := 0
+	for rows.Next() {
+		count++
+		var currentUser user.User
+		fmt.Println("Inside the result set loop. currentDish:", currentUser)
+		err := rows.Scan(&currentUser.UserID, &currentUser.Email, &currentUser.FirstName, &currentUser.LastName, &currentUser.FullName,
+			&currentUser.CreatedDate, &currentUser.AccessToken, &currentUser.RefreshToken, &currentUser.AlexaUserID, &currentUser.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fmt.Println("&currentUser.UserID:", currentUser.UserID)
+			fmt.Println("&currentUser.TempMatch:", currentUser.TempMatch)
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current user scanned. currentUser:", currentUser)
+		resultingUsers = append(resultingUsers, currentUser)
+
+	}
+	if count < 1 {
+		fcerr := fcerr.NewNotFoundError("Database could not find any users")
+		fmt.Println("Database could not find any users")
+		return nil, fcerr
+	}
+
+	return &resultingUsers, nil
 }
 
 //GetUserByID gets a user from the database with the given ID.
