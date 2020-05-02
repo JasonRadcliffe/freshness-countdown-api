@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
+	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -129,7 +130,7 @@ func TestDb_GetDishByID(t *testing.T) {
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
 		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
 
-	mock.ExpectQuery("SELECT * FROM dish WHERE id = 1").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByID(1)
 
@@ -139,6 +140,26 @@ func TestDb_GetDishByID(t *testing.T) {
 	assert.Equal(t, "Carrots", resultingDish.Title)
 	assert.Equal(t, 2, resultingDish.UserID)
 	assert.Equal(t, 3, resultingDish.StorageID)
+}
+
+func TestDb_GetDishByID_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnError(errors.New("database error"))
+
+	resultingDish, err := repo.GetDishByID(1)
+
+	assert.Nil(t, resultingDish)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while retrieving dish from the database", err.Message())
 }
 
 func TestDb_GetDishByID_NotFound(t *testing.T) {
@@ -153,7 +174,7 @@ func TestDb_GetDishByID_NotFound(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"})
 
-	mock.ExpectQuery("SELECT * FROM dish WHERE id = 1").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByID(1)
 
@@ -177,7 +198,7 @@ func TestDb_GetDishByID_RowScanError(t *testing.T) {
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
 		AddRow(1, "SHOULD BE INT", 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
 
-	mock.ExpectQuery("SELECT * FROM dish WHERE id = 1").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByID(1)
 
@@ -202,7 +223,7 @@ func TestDb_GetDishByID_FoundMultiple(t *testing.T) {
 		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "").
 		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store a second time", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
 
-	mock.ExpectQuery("SELECT * FROM dish WHERE id = 1").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByID(1)
 
@@ -762,7 +783,145 @@ func TestDb_GetUsers_RowScanError(t *testing.T) {
 }
 
 func TestDb_GetUserByID(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-01-02T15:04:05",
+		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "1v842d234523a",
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByID(2)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingUser)
+
+	assert.Equal(t, nU.UserID, resultingUser.UserID)
+	assert.Equal(t, nU.Email, resultingUser.Email)
+	assert.Equal(t, nU.FirstName, resultingUser.FirstName)
+	assert.Equal(t, nU.LastName, resultingUser.LastName)
+	assert.Equal(t, nU.FullName, resultingUser.FullName)
+	assert.Equal(t, nU.CreatedDate, resultingUser.CreatedDate)
+	assert.Equal(t, nU.AccessToken, resultingUser.AccessToken)
+	assert.Equal(t, nU.RefreshToken, resultingUser.RefreshToken)
+	assert.Equal(t, nU.AlexaUserID, resultingUser.AlexaUserID)
+	assert.Equal(t, nU.TempMatch, resultingUser.TempMatch)
+
+}
+
+func TestDb_GetUserByID_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnError(errors.New("database error"))
+
+	resultingUser, err := repo.GetUserByID(1)
+
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while retrieving user from the database", err.Message())
+}
+
+func TestDb_GetUserByID_NotFound(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"})
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingUser)
+
+	assert.Equal(t, http.StatusNotFound, err.Status())
+	assert.Equal(t, "Database could not find a user with this ID", err.Message())
+}
+
+func TestDb_GetUserByID_RowScanError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow("SHOULDBEINT", "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingUser)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
+}
+
+func TestDb_GetUserByID_FoundMultiple(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
+
+	resultingUser, err := repo.GetUserByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingUser)
+
+	assert.Equal(t, "Database returned more than 1 row when only 1 was expected", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDb_GetUserByEmail(t *testing.T) {
