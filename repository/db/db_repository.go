@@ -419,7 +419,7 @@ func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
 	return &resultingUser, nil
 }
 
-//GetUserByEmail gets a user from the database with the given email.
+//GetUserByEmail gets a user from the database with the given Email.
 func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 	getUserByEmailQuery := fmt.Sprintf(GetUserByEmailBase, email)
 	fmt.Println("About to run this Query on the database:\n", getUserByEmailQuery)
@@ -428,7 +428,7 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 	rows, err := repo.db.Query(getUserByEmailQuery)
 	if err != nil {
 		fmt.Println("got an error on the Query")
-		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by email")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database")
 		return nil, fcerr
 	}
 	defer rows.Close()
@@ -446,14 +446,17 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 			&cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.AlexaUserID, &cUser.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
-			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
 			return nil, fcerr
 		}
 		fmt.Println("now after the current user scanned. currentUser:", cUser)
 		resultingUser = cUser
 
 	}
-
+	if count == 0 {
+		fcerr := fcerr.NewNotFoundError("Database could not find a user with this Email")
+		return nil, fcerr
+	}
 	return &resultingUser, nil
 }
 
