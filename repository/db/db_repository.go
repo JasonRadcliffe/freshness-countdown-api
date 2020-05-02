@@ -763,7 +763,26 @@ func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcer
 
 //UpdateStorage takes a storage object and tries to update the existing storage in the database to match
 func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
-	return nil, nil
+	updateStorageQuery := fmt.Sprintf(UpdateStorageBase, s.Title, s.Description, s.TempMatch, s.StorageID)
+
+	fmt.Println("About to run this Query on the database:\n", updateStorageQuery)
+
+	_, err := repo.db.Query(updateStorageQuery)
+	if err != nil {
+		fmt.Println("got an error on the query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while updating the storage unit in the database")
+		return nil, fcerr
+	}
+
+	checkStorage, err := repo.GetStorageByID(s.StorageID)
+	if err != nil {
+		fmt.Println("got an error on the check query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while checking the storage unit that was created." +
+			" Cannot verify if anything was updated in the Database")
+		return nil, fcerr
+	}
+
+	return checkStorage, nil
 }
 
 //DeleteStorage takes a storage object and tries to delete the existing storage from the database
