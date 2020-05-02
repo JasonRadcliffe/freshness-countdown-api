@@ -11,51 +11,51 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 )
 
-const getDishesBase = `SELECT * FROM dish`
+const GetDishesBase = `SELECT * FROM dish`
 
-const getDishByIDBase = `SELECT * FROM dish WHERE id = %d`
+const GetDishByIDBase = `SELECT * FROM dish WHERE id = %d`
 
-const getDishByTempMatchBase = `Select * FROM dish WHERE temp_match = "%s"`
+const GetDishByTempMatchBase = `Select * FROM dish WHERE temp_match = "%s"`
 
-const createDishBase = `INSERT INTO dish ` +
+const CreateDishBase = `INSERT INTO dish ` +
 	`(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match) ` +
-	`VALUES(%d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s");`
+	`VALUES(%d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s")`
 
-const updateDishBase = `UPDATE dish SET storage_id = "%s", title = "%s", description = "%s", expire_date = "%s", ` +
+const UpdateDishBase = `UPDATE dish SET storage_id = "%s", title = "%s", description = "%s", expire_date = "%s", ` +
 	`priority = "%s", dish_type = "%s", portions = %d WHERE id=%d`
 
-const deleteDishBase = `DELETE FROM dish WHERE id=%d`
+const DeleteDishBase = `DELETE FROM dish WHERE id=%d`
 
-const getUsersBase = `SELECT * FROM user`
+const GetUsersBase = `SELECT * FROM user`
 
-const getUserByIDBase = `SELECT * FROM user WHERE id = %d`
+const GetUserByIDBase = `SELECT * FROM user WHERE id = %d`
 
-const getUserByEmailBase = `SELECT * FROM user WHERE email = "%s"`
+const GetUserByEmailBase = `SELECT * FROM user WHERE email = "%s"`
 
-const getUserByAlexaBase = `SELECT * FROM user WHERE alexa_user_id = "%s"`
+const GetUserByAlexaBase = `SELECT * FROM user WHERE alexa_user_id = "%s"`
 
-const getUserByTempMatchBase = `SELECT * FROM user WHERE temp_match = "%s"`
+const GetUserByTempMatchBase = `SELECT * FROM user WHERE temp_match = "%s"`
 
-const createUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, alexa_user_id, temp_match) ` +
+const CreateUserBase = `INSERT INTO user (email, first_name, last_name, full_name, created_date, access_token, refresh_token, alexa_user_id, temp_match) ` +
 	`VALUES("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s")`
 
-const updateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_name = "%s", full_name = "%s", ` +
+const UpdateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_name = "%s", full_name = "%s", ` +
 	`created_date = "%s", access_token = "%s", refresh_token = "%s", alexa_user_id = "%s", temp_match = "%s" `
 
-const deleteUserBase = `DELETE FROM user WHERE id=%d`
+const DeleteUserBase = `DELETE FROM user WHERE id=%d`
 
-const getAllStorageBase = `SELECT * FROM storage`
+const GetAllStorageBase = `SELECT * FROM storage`
 
-const getStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
+const GetStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
 
-const createStorageBase = `INSERT INTO storage (user_id, title, description, temp_match) ` +
+const CreateStorageBase = `INSERT INTO storage (user_id, title, description, temp_match) ` +
 	`VALUES(%d, "%s", "%s", "%s")`
 
-const updateStorageBase = `UPDATE storage SET title = "%s", description = "%s" WHERE id=%d`
+const UpdateStorageBase = `UPDATE storage SET title = "%s", description = "%s" WHERE id=%d`
 
-const deleteStorageBase = `DELETE FROM storage WHERE id=%d`
+const DeleteStorageBase = `DELETE FROM storage WHERE id=%d`
 
-const getStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
+const GetStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
@@ -250,7 +250,27 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 
 //CreateDish takes a dish object and tries to add it to the database
 func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
-	return nil, nil
+	createDishQuery := fmt.Sprintf(createDishBase, d.UserID, d.StorageID, d.Title, d.Description,
+		d.CreatedDate, d.ExpireDate, d.Priority, d.DishType, d.Portions, d.TempMatch)
+
+	fmt.Println("About to run this Query on the database:\n", createDishQuery)
+
+	_, err := repo.db.Query(createDishQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while inserting the dish into the database")
+		return nil, fcerr
+	}
+
+	checkDish, err := repo.GetDishByTempMatch(d.TempMatch)
+	if err != nil {
+		fmt.Println("Trying to CreateDish, seem to have hit a snag. Got an error when checking what we just put in")
+		fcerr := fcerr.NewInternalServerError("Error while checking the dish that was created." +
+			" Cannot verify if anything was entered to the Database")
+		return nil, fcerr
+	}
+
+	return checkDish, nil
 }
 
 //UpdateDish takes a dish object and tries to update the existing dish in the database to match
