@@ -1465,7 +1465,131 @@ func TestDb_CreateUser_CheckError(t *testing.T) {
 }
 
 func TestDb_UpdateUser(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	updateRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+
+	mock.ExpectQuery(fmt.Sprintf(UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch, nU.UserID)).WillReturnRows(updateRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnRows(getRows)
+
+	returnedUser, err := repo.UpdateUser(*nU)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, returnedUser)
+
+	assert.Equal(t, nU.UserID, returnedUser.UserID)
+	assert.Equal(t, nU.Email, returnedUser.Email)
+	assert.Equal(t, nU.FirstName, returnedUser.FirstName)
+	assert.Equal(t, nU.LastName, returnedUser.LastName)
+	assert.Equal(t, nU.FullName, returnedUser.FullName)
+	assert.Equal(t, nU.CreatedDate, returnedUser.CreatedDate)
+	assert.Equal(t, nU.AccessToken, returnedUser.AccessToken)
+	assert.Equal(t, nU.RefreshToken, returnedUser.RefreshToken)
+	assert.Equal(t, nU.AlexaUserID, returnedUser.AlexaUserID)
+	assert.Equal(t, nU.TempMatch, returnedUser.TempMatch)
+
+}
+
+func TestDb_UpdateUser_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch, nU.UserID)).
+		WillReturnError(errors.New("database error"))
+
+	returnedUser, err := repo.UpdateUser(*nU)
+
+	assert.Nil(t, returnedUser)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while updating the user in the database", err.Message())
+}
+
+func TestDb_UpdateUser_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch, nU.UserID)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnError(errors.New("database error"))
+
+	returnedUser, err := repo.UpdateUser(*nU)
+
+	assert.Nil(t, returnedUser)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while checking the user that was created."+
+		" Cannot verify if anything was updated in the Database", err.Message())
+
 }
 
 func TestDb_DeleteUser(t *testing.T) {
