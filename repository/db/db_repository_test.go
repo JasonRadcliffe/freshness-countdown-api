@@ -1911,7 +1911,98 @@ func TestDb_GetStorageByID_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_CreateStorage(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(CreateStorageBase, nS.UserID, nS.Title, nS.Description, nS.TempMatch)).WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByTempMatchBase, nS.TempMatch)).WillReturnRows(getRows)
+
+	returnedStorage, err := repo.CreateStorage(*nS)
+
+	assert.Nil(t, err)
+
+	assert.NotNil(t, returnedStorage)
+	assert.Equal(t, nS.Title, returnedStorage.Title)
+}
+
+func TestDb_CreateStorage_InsertError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(CreateStorageBase, nS.UserID, nS.Title, nS.Description, nS.TempMatch)).
+		WillReturnError(errors.New("not possible"))
+
+	returnedStorage, err := repo.CreateStorage(*nS)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedStorage)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while inserting the storage unit into the database", err.Message())
+}
+
+func TestDb_CreateStorage_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(CreateStorageBase, nS.UserID, nS.Title, nS.Description, nS.TempMatch)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByTempMatchBase, nS.TempMatch)).WillReturnError(errors.New("database error"))
+
+	returnedStorage, err := repo.CreateStorage(*nS)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedStorage)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while checking the storage unit that was created."+
+		" Cannot verify if anything was entered to the Database", err.Message())
 }
 
 func TestDb_UpdateStorage(t *testing.T) {

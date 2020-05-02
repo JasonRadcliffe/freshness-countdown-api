@@ -64,6 +64,9 @@ const GetStoragesByUserBase = `SELECT * FROM storage WHERE user_id=%d`
 //GetStorageByIDBase can be used with fmt.Sprintf() to get the Query for GetStorageByID().
 const GetStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
 
+//GetStorageByTempMatchBase can be used with fmt.Sprintf() to get the Query for GetStorageByTempMatch().
+const GetStorageByTempMatchBase = `SELECT * FROM storage WHERE temp_match="%s"`
+
 //CreateStorageBase can be used with fmt.Sprintf() to get the Query for CreateStorage().
 const CreateStorageBase = `INSERT INTO storage (user_id, title, description, temp_match) ` +
 	`VALUES(%d, "%s", "%s", "%s")`
