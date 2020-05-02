@@ -72,7 +72,7 @@ const CreateStorageBase = `INSERT INTO storage (user_id, title, description, tem
 	`VALUES(%d, "%s", "%s", "%s")`
 
 //UpdateStorageBase can be used with fmt.Sprintf() to get the Query for UpdateStorage().
-const UpdateStorageBase = `UPDATE storage SET title = "%s", description = "%s" WHERE id=%d`
+const UpdateStorageBase = `UPDATE storage SET title = "%s", description = "%s", temp_match = "%s" WHERE id=%d`
 
 //DeleteStorageBase can be used with fmt.Sprintf() to get the Query for DeleteStorage().
 const DeleteStorageBase = `DELETE FROM storage WHERE id=%d`
