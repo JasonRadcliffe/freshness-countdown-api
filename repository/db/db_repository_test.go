@@ -433,6 +433,62 @@ func TestDb_CreateDish_CheckError(t *testing.T) {
 }
 
 func TestDb_UpdateDish(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		DishID:      2,
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(2, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(UpdateDishBase, nD.StorageID, nD.Title,
+		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.DishID)).WillReturnRows(getRows)
+
+	returnedDish, err := repo.UpdateDish(nD)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, returnedDish)
+
+	assert.Equal(t, nD.DishID, returnedDish.DishID)
+	assert.Equal(t, nD.StorageID, returnedDish.StorageID)
+	assert.Equal(t, nD.Title, returnedDish.Title)
+	assert.Equal(t, nD.Description, returnedDish.Description)
+	assert.Equal(t, nD.ExpireDate, returnedDish.ExpireDate)
+	assert.Equal(t, nD.Priority, returnedDish.Priority)
+	assert.Equal(t, nD.DishType, returnedDish.DishType)
+	assert.Equal(t, nD.Portions, returnedDish.Portions)
+
+}
+
+func TestDb_UpdateDish_QueryError(t *testing.T) {
+	assert.Equal(t, "", "")
+}
+
+func TestDb_UpdateDish_CheckError(t *testing.T) {
 	assert.Equal(t, "", "")
 }
 
