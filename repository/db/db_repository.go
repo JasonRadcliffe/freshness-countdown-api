@@ -100,6 +100,7 @@ type Repository interface {
 
 	GetStoragesByUser(int) (*storage.Storages, fcerr.FCErr)
 	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
+	GetStorageByTempMatch(string) (*storage.Storage, fcerr.FCErr)
 	CreateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
 	UpdateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
 	DeleteStorage(storage.Storage) fcerr.FCErr
@@ -696,9 +697,68 @@ func (repo *repository) GetStorageByID(id int) (*storage.Storage, fcerr.FCErr) {
 	return &resultingStorage, nil
 }
 
+//GetStorageByTempMatch takes a string and queries the mysql database for a storage with this temp_match.
+func (repo *repository) GetStorageByTempMatch(tM string) (*storage.Storage, fcerr.FCErr) {
+	getStorageByIDQuery := fmt.Sprintf(GetStorageByTempMatchBase, tM)
+	fmt.Println("About to run this Query on the database:\n", getStorageByIDQuery)
+	var resultingStorage storage.Storage
+
+	rows, err := repo.db.Query(getStorageByIDQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving storage unit from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	fmt.Println("now about to check the rows returned:")
+	count := 0
+	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
+		var cStorage storage.Storage
+		fmt.Println("Inside the result set loop. currentStorage:", cStorage)
+		err := rows.Scan(&cStorage.StorageID, &cStorage.UserID, &cStorage.Title, &cStorage.Description, &cStorage.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current storage unit scanned. currentStorage:", cStorage)
+		resultingStorage = cStorage
+
+	}
+	if count == 0 {
+		fcerr := fcerr.NewNotFoundError("Database could not find a storage unit with this ID")
+		return nil, fcerr
+	}
+	return &resultingStorage, nil
+}
+
 //CreateStorage takes a storage object and tries to add it to the database
 func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
-	return nil, nil
+	createStorageQuery := fmt.Sprintf(CreateStorageBase, s.UserID, s.Title, s.Description, s.TempMatch)
+
+	fmt.Println("About to run this Query on the database:\n", createStorageQuery)
+
+	_, err := repo.db.Query(createStorageQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while inserting the storage unit into the database")
+		return nil, fcerr
+	}
+
+	checkStorage, err := repo.GetStorageByTempMatch(s.TempMatch)
+	if err != nil {
+		fmt.Println("Trying to CreateStorage, seem to have hit a snag. Got an error when checking what we just put in: " + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while checking the storage unit that was created." +
+			" Cannot verify if anything was entered to the Database")
+		return nil, fcerr
+	}
+
+	return checkStorage, nil
 }
 
 //UpdateStorage takes a storage object and tries to update the existing storage in the database to match
