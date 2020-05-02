@@ -143,7 +143,6 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
 	count := 0
 	for rows.Next() {
@@ -187,7 +186,6 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
 	var count = 0
 	for rows.Next() {
@@ -235,7 +233,6 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
 	var count = 0
 	for rows.Next() {
@@ -353,7 +350,6 @@ func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
 	count := 0
 	for rows.Next() {
@@ -395,9 +391,14 @@ func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
+	count := 0
 	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
 		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
@@ -428,9 +429,14 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
+	count := 0
 	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
 		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
@@ -461,9 +467,14 @@ func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
+	count := 0
 	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
 		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
@@ -494,9 +505,14 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 		return nil, fcerr
 	}
 	defer rows.Close()
-	//s := "Retrieved Records:\n"
 	fmt.Println("now about to check the rows returned:")
+	count := 0
 	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
 		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
