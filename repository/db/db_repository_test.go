@@ -2108,7 +2108,88 @@ func TestDb_UpdateStorage_CheckError(t *testing.T) {
 }
 
 func TestDb_DeleteStorage(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	deleteRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.StorageID)).WillReturnRows(deleteRows)
+
+	err := repo.DeleteStorage(*nS)
+
+	assert.Nil(t, err)
+}
+
+func TestDb_DeleteStorage_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.StorageID)).WillReturnError(errors.New("database error"))
+
+	err := repo.DeleteStorage(*nS)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while deleting the storage unit from the database", err.Message())
+}
+
+func TestDb_DeleteStorage_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	deleteRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.StorageID)).WillReturnRows(deleteRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.StorageID)).WillReturnRows(getRows)
+
+	err := repo.DeleteStorage(*nS)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while deleting the storage unit from the database, could not verify it was deleted.", err.Message())
 }
 
 func TestDb_GetStorageDishes(t *testing.T) {
