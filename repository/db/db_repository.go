@@ -53,7 +53,7 @@ const CreateUserBase = `INSERT INTO user (email, first_name, last_name, full_nam
 
 //UpdateUserBase can be used with fmt.Sprintf() to get the Query for UpdateUser().
 const UpdateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_name = "%s", full_name = "%s", ` +
-	`created_date = "%s", access_token = "%s", refresh_token = "%s", alexa_user_id = "%s", temp_match = "%s" `
+	`access_token = "%s", refresh_token = "%s", alexa_user_id = "%s", temp_match = "%s" WHERE id = %d `
 
 //DeleteUserBase can be used with fmt.Sprintf() to get the Query for DeleteUser().
 const DeleteUserBase = `DELETE FROM user WHERE id=%d`
@@ -568,7 +568,27 @@ func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
 
 //UpdateUser takes a user object and tries to update the existing user in the database to match
 func (repo *repository) UpdateUser(u user.User) (*user.User, fcerr.FCErr) {
-	return nil, nil
+	updateUserQuery := fmt.Sprintf(UpdateUserBase, u.Email, u.FirstName, u.LastName,
+		u.FullName, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch, u.UserID)
+
+	fmt.Println("About to run this Query on the database:\n", updateUserQuery)
+
+	_, err := repo.db.Query(updateUserQuery)
+	if err != nil {
+		fmt.Println("got an error on the query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while updating the user in the database")
+		return nil, fcerr
+	}
+
+	checkDish, err := repo.GetUserByID(u.UserID)
+	if err != nil {
+		fmt.Println("got an error on the check query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while checking the user that was created." +
+			" Cannot verify if anything was updated in the Database")
+		return nil, fcerr
+	}
+
+	return checkDish, nil
 }
 
 //DeleteUser takes a user object and tries to delete the existing user from the database

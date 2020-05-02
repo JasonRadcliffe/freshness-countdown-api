@@ -1490,8 +1490,8 @@ func TestDb_UpdateUser(t *testing.T) {
 
 	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
 		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
-		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
 		nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch, nU.UserID)).WillReturnRows(updateRows)
