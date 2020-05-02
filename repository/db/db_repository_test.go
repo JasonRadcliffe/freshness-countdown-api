@@ -468,7 +468,7 @@ func TestDb_UpdateDish(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.DishID)).WillReturnRows(getRows)
 
-	returnedDish, err := repo.UpdateDish(nD)
+	returnedDish, err := repo.UpdateDish(*nD)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, returnedDish)
