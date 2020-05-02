@@ -320,6 +320,23 @@ func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 
 //DeleteDish takes a dish object and tries to delete the existing dish from the database
 func (repo *repository) DeleteDish(d dish.Dish) fcerr.FCErr {
+	deleteDishQuery := fmt.Sprintf(DeleteDishBase, d.DishID)
+
+	_, err := repo.db.Query(deleteDishQuery)
+	if err != nil {
+		fmt.Println("got an error on the delete query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database")
+		return fcerr
+
+	}
+
+	returnedDish, err := repo.GetDishByID(d.DishID)
+	if err == nil {
+		fmt.Println("Expected an error here, but didn't get one!! Dish Title:" + returnedDish.Title)
+		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database, could not verify it was deleted.")
+		return fcerr
+	}
+
 	return nil
 }
 

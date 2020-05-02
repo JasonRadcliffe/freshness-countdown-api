@@ -595,7 +595,76 @@ func TestDb_DeleteDish(t *testing.T) {
 }
 
 func TestDb_DeleteDish_QueryError(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		DishID:      2,
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteDishBase, nD.DishID)).WillReturnError(errors.New("database error"))
+
+	err := repo.DeleteDish(*nD)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while deleting the dish from the database", err.Message())
+}
+
+func TestDb_DeleteDish_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		DishID:      2,
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	getRows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	deleteRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteDishBase, nD.DishID)).WillReturnRows(deleteRows)
+
+	mock.ExpectQuery("SELECT * FROM dish WHERE id = 2").WillReturnRows(getRows)
+
+	err := repo.DeleteDish(*nD)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while deleting the dish from the database, could not verify it was deleted.", err.Message())
 }
 
 func TestDb_GetUsers(t *testing.T) {
