@@ -363,8 +363,8 @@ func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
 	for rows.Next() {
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
-		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
-			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
+			&cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.AlexaUserID, &cUser.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
@@ -396,8 +396,8 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 	for rows.Next() {
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
-		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
-			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
+			&cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.AlexaUserID, &cUser.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
@@ -429,8 +429,8 @@ func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
 	for rows.Next() {
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
-		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
-			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
+			&cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.AlexaUserID, &cUser.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
@@ -462,8 +462,8 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 	for rows.Next() {
 		var cUser user.User
 		fmt.Println("Inside the result set loop. currentUser:", cUser)
-		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName,
-			&cUser.FullName, &cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.TempMatch)
+		err := rows.Scan(&cUser.UserID, &cUser.Email, &cUser.FirstName, &cUser.LastName, &cUser.FullName,
+			&cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.AlexaUserID, &cUser.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
