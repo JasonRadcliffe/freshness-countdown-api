@@ -615,7 +615,41 @@ func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
 
 //GetStorage takes an int of a user id and returns the list of storage objects owned by that user.
 func (repo *repository) GetStoragesByUser(userID int) (*storage.Storages, fcerr.FCErr) {
+	fmt.Println("now at the beginning of the db_repository GetStoragesByUser()")
 	var resultingStorages storage.Storages
+	getStoragesByUserQuery := fmt.Sprintf(GetStoragesByUserBase, userID)
+	rows, err := repo.db.Query(getStoragesByUserQuery)
+	fmt.Println("now after doing the Query:", getStoragesByUserQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query:", err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while retrieving storage units from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	fmt.Println("now about to check the rows returned:")
+	count := 0
+	for rows.Next() {
+		count++
+		var currentStorage storage.Storage
+		fmt.Println("Inside the result set loop. currentStorage:", currentStorage)
+		err := rows.Scan(&currentStorage.StorageID, &currentStorage.UserID, &currentStorage.Title, &currentStorage.Description, &currentStorage.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fmt.Println("&currentStorage.StorageID:", currentStorage.StorageID)
+			fmt.Println("&currentStorage.TempMatch:", currentStorage.TempMatch)
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current storage scanned. currentStorage:", currentStorage)
+		resultingStorages = append(resultingStorages, currentStorage)
+
+	}
+	if count < 1 {
+		fmt.Println("Database could not find any storage units for this user")
+		fcerr := fcerr.NewNotFoundError("Database could not find any storage units for this user")
+		return nil, fcerr
+	}
+
 	return &resultingStorages, nil
 }
 
