@@ -277,14 +277,14 @@ func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 
 	_, err := repo.db.Query(createDishQuery)
 	if err != nil {
-		fmt.Println("got an error on the Query")
+		fmt.Println("got an error on the Query:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while inserting the dish into the database")
 		return nil, fcerr
 	}
 
 	checkDish, err := repo.GetDishByTempMatch(d.TempMatch)
 	if err != nil {
-		fmt.Println("Trying to CreateDish, seem to have hit a snag. Got an error when checking what we just put in")
+		fmt.Println("Trying to CreateDish, seem to have hit a snag. Got an error when checking what we just put in: " + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the dish that was created." +
 			" Cannot verify if anything was entered to the Database")
 		return nil, fcerr
@@ -454,7 +454,7 @@ func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
 
 	checkUser, err := repo.GetUserByTempMatch(u.TempMatch)
 	if err != nil {
-		fmt.Println("Trying to CreateUser, seem to have hit a snag. Got an error when checking what we just put in")
+		fmt.Println("Trying to CreateUser, seem to have hit a snag. Got an error when checking what we just put in:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the user that was created")
 		return nil, fcerr
 	}

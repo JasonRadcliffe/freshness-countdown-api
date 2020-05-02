@@ -2,8 +2,11 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -223,7 +226,7 @@ func TestDb_GetDishByTempMatch(t *testing.T) {
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
 		AddRow(1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "9r842da351")
 
-	mock.ExpectQuery(`Select * FROM dish WHERE temp_match = "9r842da351"`).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByTempMatchBase, "9r842da351")).WillReturnRows(rows)
 
 	resultingDish, err := repo.GetDishByTempMatch("9r842da351")
 
@@ -311,7 +314,122 @@ func TestDb_GetDishByTempMatch_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_CreateDish(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(5, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(CreateDishBase, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+		nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetDishByTempMatchBase, nD.TempMatch)).WillReturnRows(getRows)
+
+	returnedDish, err := repo.CreateDish(*nD)
+
+	assert.Nil(t, err)
+
+	assert.NotNil(t, returnedDish)
+	assert.Equal(t, nD.Title, returnedDish.Title)
+}
+
+func TestDb_CreateDish_InsertError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(CreateDishBase, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).
+		WillReturnError(errors.New("not possible"))
+
+	returnedDish, err := repo.CreateDish(*nD)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedDish)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while inserting the dish into the database", err.Message())
+
+	assert.NotNil(t, returnedDish)
+	assert.Equal(t, nD.Title, returnedDish.Title)
+}
+
+func TestDb_CreateDish_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(CreateDishBase, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+		nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetDishByTempMatchBase, nD.TempMatch)).
+		WillReturnError(errors.New("not possible"))
+
+	returnedDish, err := repo.CreateDish(*nD)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedDish)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while checking the dish that was created."+
+		" Cannot verify if anything was entered to the Database", err.Message())
 }
 
 func TestDb_UpdateDish(t *testing.T) {
