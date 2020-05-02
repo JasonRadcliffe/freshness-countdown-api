@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
+	"github.com/jasonradcliffe/freshness-countdown-api/domain/storage"
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -1787,7 +1788,126 @@ func TestDb_GetStoragesByUser_RowScanError(t *testing.T) {
 }
 
 func TestDb_GetStorageByID(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nS := &storage.Storage{
+		StorageID:   1,
+		UserID:      2,
+		Title:       "Fridge",
+		Description: "the main fridge",
+		TempMatch:   "1v842d2343645",
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.StorageID)).WillReturnRows(rows)
+
+	resultingStorage, err := repo.GetStorageByID(1)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingStorage)
+
+	assert.Equal(t, nS.StorageID, resultingStorage.StorageID)
+	assert.Equal(t, nS.UserID, resultingStorage.UserID)
+	assert.Equal(t, nS.Title, resultingStorage.Title)
+	assert.Equal(t, nS.Description, resultingStorage.Description)
+	assert.Equal(t, nS.TempMatch, resultingStorage.TempMatch)
+
+}
+
+func TestDb_GetStorageByID_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnError(errors.New("database error"))
+
+	resultingStorage, err := repo.GetStorageByID(1)
+
+	assert.Nil(t, resultingStorage)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while retrieving storage from the database", err.Message())
+}
+
+func TestDb_GetStorageByID_NotFound(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"})
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnRows(rows)
+
+	resultingStorage, err := repo.GetStorageByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingStorage)
+
+	assert.Equal(t, http.StatusNotFound, err.Status())
+	assert.Equal(t, "Database could not find a storage unit with this ID", err.Message())
+}
+
+func TestDb_GetStorageByID_RowScanError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
+		AddRow(1, "ShouldBeInt", "Fridge", "The Main Fridge", "1v842d2343645")
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnRows(rows)
+	resultingStorage, err := repo.GetStorageByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingStorage)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
+}
+
+func TestDb_GetStorageByID_FoundMultiple(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
+		AddRow(1, 2, "Fridge", "The Main Fridge", "1v842d2343645").
+		AddRow(1, 2, "Freezer", "The Main Freezer", "346afgdfg3563")
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnRows(rows)
+
+	resultingStorage, err := repo.GetStorageByID(1)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingStorage)
+
+	assert.Equal(t, "Database returned more than 1 row when only 1 was expected", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDb_CreateStorage(t *testing.T) {
