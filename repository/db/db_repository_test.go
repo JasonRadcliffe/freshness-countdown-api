@@ -485,11 +485,81 @@ func TestDb_UpdateDish(t *testing.T) {
 }
 
 func TestDb_UpdateDish_QueryError(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		DishID:      2,
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(UpdateDishBase, nD.StorageID, nD.Title,
+		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.DishID)).
+		WillReturnError(errors.New("database error"))
+
+	returnedDish, err := repo.UpdateDish(*nD)
+
+	assert.Nil(t, returnedDish)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while updating the dish in the database", err.Message())
 }
 
 func TestDb_UpdateDish_CheckError(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nD := &dish.Dish{
+		DishID:      2,
+		UserID:      2,
+		StorageID:   3,
+		Title:       "Carrots",
+		Description: "Some carrots we got at the store",
+		CreatedDate: "2006-01-02T15:04:05",
+		ExpireDate:  "2020-10-13T08:00",
+		Priority:    "",
+		DishType:    "",
+		Portions:    -1,
+		TempMatch:   "9r842d3a351",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(UpdateDishBase, nD.StorageID, nD.Title,
+		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.DishID)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.DishID)).WillReturnError(errors.New("database error"))
+
+	returnedDish, err := repo.UpdateDish(*nD)
+
+	assert.Nil(t, returnedDish)
+	assert.NotNil(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while checking the dish that was created."+
+		" Cannot verify if anything was updated in the Database", err.Message())
+
 }
 
 func TestDb_DeleteDish(t *testing.T) {
