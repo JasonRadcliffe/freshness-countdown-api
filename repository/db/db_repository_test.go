@@ -1351,7 +1351,117 @@ func TestDb_GetUserByTempMatch_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_CreateUser(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+
+	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).WillReturnRows(getRows)
+
+	returnedUser, err := repo.CreateUser(*nU)
+
+	assert.Nil(t, err)
+
+	assert.NotNil(t, returnedUser)
+	assert.Equal(t, nU.FirstName, returnedUser.FirstName)
+}
+
+func TestDb_CreateUser_InsertError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)).
+		WillReturnError(errors.New("not possible"))
+
+	returnedUser, err := repo.CreateUser(*nU)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedUser)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while inserting the user into the database", err.Message())
+}
+
+func TestDb_CreateUser_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).
+		WillReturnError(errors.New("not possible"))
+
+	returnedUser, err := repo.CreateUser(*nU)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, returnedUser)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while checking the user that was created."+
+		" Cannot verify if anything was entered to the Database", err.Message())
 }
 
 func TestDb_UpdateUser(t *testing.T) {
