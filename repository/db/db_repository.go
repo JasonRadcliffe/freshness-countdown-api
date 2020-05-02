@@ -787,6 +787,23 @@ func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcer
 
 //DeleteStorage takes a storage object and tries to delete the existing storage from the database
 func (repo *repository) DeleteStorage(s storage.Storage) fcerr.FCErr {
+	deleteStorageQuery := fmt.Sprintf(DeleteStorageBase, s.StorageID)
+
+	_, err := repo.db.Query(deleteStorageQuery)
+	if err != nil {
+		fmt.Println("got an error on the delete query:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while deleting the storage unit from the database")
+		return fcerr
+
+	}
+
+	returnedStorage, err := repo.GetStorageByID(s.StorageID)
+	if err == nil {
+		fmt.Println("Expected an error here, but didn't get one!! Storage ID:", returnedStorage.StorageID)
+		fcerr := fcerr.NewInternalServerError("Error while deleting the storage unit from the database, could not verify it was deleted.")
+		return fcerr
+	}
+
 	return nil
 }
 

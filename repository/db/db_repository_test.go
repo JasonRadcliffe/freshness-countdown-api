@@ -2193,5 +2193,103 @@ func TestDb_DeleteStorage_CheckError(t *testing.T) {
 }
 
 func TestDb_GetStorageDishes(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	sID := 3
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "").
+		AddRow(1, 2, 3, "Peas", "Some peas we got at the store", "2007-01-02T15:04:05", "2021-10-13T08:00", 1, "", -1, "")
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
+
+	resultingDishes, err := repo.GetDishes()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(*resultingDishes))
+
+	resultingDish1 := (*resultingDishes)[0]
+	resultingDish2 := (*resultingDishes)[1]
+
+	assert.Equal(t, "Carrots", resultingDish1.Title)
+	assert.Equal(t, "Peas", resultingDish2.Title)
+
+	assert.Equal(t, 1, resultingDish1.UserID)
+	assert.Equal(t, 2, resultingDish2.UserID)
+}
+
+func TestDb_GetStorageDishes_NotFound(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	sID := 3
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"})
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
+
+	resultingDishes, err := repo.GetDishes()
+
+	assert.NotNil(t, err)
+	assert.Nil(t, resultingDishes)
+	assert.Equal(t, "Database could not find any dishes that belong to this storage unit", err.Message())
+	assert.Equal(t, http.StatusNotFound, err.Status())
+}
+
+func TestDb_GetStorageDishes_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	sID := 3
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnError(errors.New("database error"))
+	resultingDishes, err := repo.GetDishes()
+
+	assert.Nil(t, resultingDishes)
+	assert.NotNil(t, err)
+	assert.Equal(t, "Error while retrieving dishes from the database", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestDb_GetStorageDishes_RowScanError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	sID := 3
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow("SHOULDBEINT", 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
+
+	resultingDishes, err := repo.GetDishes()
+
+	assert.Nil(t, resultingDishes)
+	assert.NotNil(t, err)
+	assert.Equal(t, "Error while scanning the result from the database", err.Message())
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
