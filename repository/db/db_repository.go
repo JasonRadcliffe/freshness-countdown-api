@@ -26,7 +26,7 @@ const CreateDishBase = `INSERT INTO dish ` +
 	`VALUES(%d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s")`
 
 //UpdateDishBase can be used with fmt.Sprintf() to get the Query for UpdateDish().
-const UpdateDishBase = `UPDATE dish SET storage_id = "%s", title = "%s", description = "%s", expire_date = "%s", ` +
+const UpdateDishBase = `UPDATE dish SET storage_id = "%d", title = "%s", description = "%s", expire_date = "%s", ` +
 	`priority = "%s", dish_type = "%s", portions = %d WHERE id=%d`
 
 //DeleteDishBase can be used with fmt.Sprintf() to get the Query for DeleteDish().

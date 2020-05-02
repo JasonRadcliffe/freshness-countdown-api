@@ -463,7 +463,7 @@ func TestDb_UpdateDish(t *testing.T) {
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(UpdateDishBase, nD.StorageID, nD.Title,
-		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions)).
+		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.DishID)).
 		WillReturnRows(createRows)
 
 	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.DishID)).WillReturnRows(getRows)
