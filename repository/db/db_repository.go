@@ -510,7 +510,7 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 	rows, err := repo.db.Query(getUserByTempMatchQuery)
 	if err != nil {
 		fmt.Println("got an error on the Query")
-		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database by temp match")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving user from the database")
 		return nil, fcerr
 	}
 	defer rows.Close()
@@ -528,14 +528,17 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 			&cUser.CreatedDate, &cUser.AccessToken, &cUser.RefreshToken, &cUser.AlexaUserID, &cUser.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
-			fcerr := fcerr.NewInternalServerError("unable to scan the result from the database")
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
 			return nil, fcerr
 		}
 		fmt.Println("now after the current user scanned. currentUser:", cUser)
 		resultingUser = cUser
 
 	}
-
+	if count == 0 {
+		fcerr := fcerr.NewNotFoundError("Database could not find a user with this Temp Match")
+		return nil, fcerr
+	}
 	return &resultingUser, nil
 }
 
