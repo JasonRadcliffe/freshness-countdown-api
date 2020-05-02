@@ -1077,7 +1077,7 @@ func TestDb_GetUserByAlexa(t *testing.T) {
 
 	nU := &user.User{
 		UserID:       2,
-		Alexa:        "nothing@gmail.com",
+		Email:        "nothing@gmail.com",
 		FirstName:    "Bob",
 		LastName:     "Nothing",
 		FullName:     "Bob Nothing",
