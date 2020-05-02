@@ -542,22 +542,24 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 	return &resultingUser, nil
 }
 
-//CreateUser adds a user to the database after being populated by the service.
 func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
-	createUserQuery := fmt.Sprintf(CreateUserBase, u.Email, u.FirstName, u.LastName, u.FullName, u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch)
+	createUserQuery := fmt.Sprintf(CreateUserBase, u.Email, u.FirstName, u.LastName, u.FullName,
+		u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch)
+
 	fmt.Println("About to run this Query on the database:\n", createUserQuery)
 
 	_, err := repo.db.Query(createUserQuery)
 	if err != nil {
-		fmt.Println("got an error on the Query")
+		fmt.Println("got an error on the Query:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while inserting the user into the database")
 		return nil, fcerr
 	}
 
 	checkUser, err := repo.GetUserByTempMatch(u.TempMatch)
 	if err != nil {
-		fmt.Println("Trying to CreateUser, seem to have hit a snag. Got an error when checking what we just put in:" + err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while checking the user that was created")
+		fmt.Println("Trying to CreateUser, seem to have hit a snag. Got an error when checking what we just put in: " + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while checking the user that was created." +
+			" Cannot verify if anything was entered to the Database")
 		return nil, fcerr
 	}
 
