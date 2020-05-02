@@ -1593,7 +1593,105 @@ func TestDb_UpdateUser_CheckError(t *testing.T) {
 }
 
 func TestDb_DeleteUser(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	deleteRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteUserBase, nU.UserID)).WillReturnRows(deleteRows)
+
+	err := repo.DeleteUser(*nU)
+
+	assert.Nil(t, err)
+}
+
+func TestDb_DeleteUser_QueryError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteUserBase, nU.UserID)).WillReturnError(errors.New("database error"))
+
+	err := repo.DeleteUser(*nU)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while deleting the dish from the database", err.Message())
+}
+
+func TestDb_DeleteUser_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo := &repository{db: db}
+
+	nU := &user.User{
+		UserID:       2,
+		Email:        "nothing@gmail.com",
+		FirstName:    "Bob",
+		LastName:     "Nothing",
+		FullName:     "Bob Nothing",
+		CreatedDate:  "2016-02-02T15:04:05",
+		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		AlexaUserID:  "qwertyuiop",
+		TempMatch:    "a4s65df6adhy4s5gjet",
+	}
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+
+	deleteRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(DeleteUserBase, nU.UserID)).WillReturnRows(deleteRows)
+
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnRows(getRows)
+
+	err := repo.DeleteUser(*nU)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+	assert.Equal(t, "Error while deleting the user from the database, could not verify it was deleted.", err.Message())
 }
 
 func TestDb_GetStorage(t *testing.T) {
