@@ -655,7 +655,41 @@ func (repo *repository) GetStoragesByUser(userID int) (*storage.Storages, fcerr.
 
 //GetStorageByID takes an int and queries the mysql database for a storage with this id.
 func (repo *repository) GetStorageByID(id int) (*storage.Storage, fcerr.FCErr) {
+	getStorageByIDQuery := fmt.Sprintf(GetStorageByIDBase, id)
+	fmt.Println("About to run this Query on the database:\n", getStorageByIDQuery)
 	var resultingStorage storage.Storage
+
+	rows, err := repo.db.Query(getStorageByIDQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving storage unit from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	fmt.Println("now about to check the rows returned:")
+	count := 0
+	for rows.Next() {
+		count++
+		if count > 1 {
+			dberr := fcerr.NewInternalServerError("Database returned more than 1 row when only 1 was expected")
+			return nil, dberr
+		}
+		var cStorage storage.Storage
+		fmt.Println("Inside the result set loop. currentStorage:", cStorage)
+		err := rows.Scan(&cStorage.StorageID, &cStorage.UserID, &cStorage.Title, &cStorage.Description, &cStorage.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current storage unit scanned. currentStorage:", cStorage)
+		resultingStorage = cStorage
+
+	}
+	if count == 0 {
+		fcerr := fcerr.NewNotFoundError("Database could not find a storage unit with this ID")
+		return nil, fcerr
+	}
 	return &resultingStorage, nil
 }
 

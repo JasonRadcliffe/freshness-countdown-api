@@ -1839,7 +1839,7 @@ func TestDb_GetStorageByID_QueryError(t *testing.T) {
 	assert.NotNil(t, err)
 
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
-	assert.Equal(t, "Error while retrieving storage from the database", err.Message())
+	assert.Equal(t, "Error while retrieving storage unit from the database", err.Message())
 }
 
 func TestDb_GetStorageByID_NotFound(t *testing.T) {
