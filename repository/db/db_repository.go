@@ -58,8 +58,8 @@ const UpdateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_na
 //DeleteUserBase can be used with fmt.Sprintf() to get the Query for DeleteUser().
 const DeleteUserBase = `DELETE FROM user WHERE id=%d`
 
-//GetAllStorageBase can be used with fmt.Sprintf() to get the Query for GetAllStorage().
-const GetAllStorageBase = `SELECT * FROM storage`
+//GetStoragesByUserBase can be used with fmt.Sprintf() to get the Query for GetAllStorage().
+const GetStoragesByUserBase = `SELECT * FROM storage WHERE user_id=%d`
 
 //GetStorageByIDBase can be used with fmt.Sprintf() to get the Query for GetStorageByID().
 const GetStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
@@ -95,7 +95,7 @@ type Repository interface {
 	UpdateUser(user.User) (*user.User, fcerr.FCErr)
 	DeleteUser(user.User) fcerr.FCErr
 
-	GetStorage(int) (*storage.Storages, fcerr.FCErr)
+	GetStoragesByUser(int) (*storage.Storages, fcerr.FCErr)
 	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
 	CreateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
 	UpdateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
@@ -614,7 +614,7 @@ func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
 }
 
 //GetStorage takes an int of a user id and returns the list of storage objects owned by that user.
-func (repo *repository) GetStorage(userID int) (*storage.Storages, fcerr.FCErr) {
+func (repo *repository) GetStoragesByUser(userID int) (*storage.Storages, fcerr.FCErr) {
 	var resultingStorages storage.Storages
 	return &resultingStorages, nil
 }
