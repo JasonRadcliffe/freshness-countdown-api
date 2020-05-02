@@ -2210,7 +2210,7 @@ func TestDb_GetStorageDishes(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetStorageDishes(sID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(*resultingDishes))
@@ -2241,7 +2241,7 @@ func TestDb_GetStorageDishes_NotFound(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetStorageDishes(sID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDishes)
@@ -2261,7 +2261,7 @@ func TestDb_GetStorageDishes_QueryError(t *testing.T) {
 	sID := 3
 
 	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnError(errors.New("database error"))
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetStorageDishes(sID)
 
 	assert.Nil(t, resultingDishes)
 	assert.NotNil(t, err)
@@ -2286,7 +2286,7 @@ func TestDb_GetStorageDishes_RowScanError(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetStorageDishes(sID)
 
 	assert.Nil(t, resultingDishes)
 	assert.NotNil(t, err)

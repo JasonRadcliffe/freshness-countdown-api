@@ -808,6 +808,43 @@ func (repo *repository) DeleteStorage(s storage.Storage) fcerr.FCErr {
 }
 
 //GetStorageDishes takes a storage object and tries to update the existing storage in the database to match
-func (repo *repository) GetStorageDishes(s int) (*dish.Dishes, fcerr.FCErr) {
-	return nil, nil
+func (repo *repository) GetStorageDishes(sID int) (*dish.Dishes, fcerr.FCErr) {
+	fmt.Println("now at the beginning of the db_repository GetStorageDishes()")
+	var resultDishes dish.Dishes
+	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, sID)
+	rows, err := repo.db.Query(getStorageDishesQuery)
+	fmt.Println("now after doing the Query:", getStorageDishesQuery)
+	if err != nil {
+		fmt.Println("got an error on the Query:", err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while retrieving dishes from the database")
+		return nil, fcerr
+	}
+	defer rows.Close()
+	fmt.Println("now about to check the rows returned:")
+	count := 0
+	for rows.Next() {
+		count++
+		var currentDish dish.Dish
+		fmt.Println("Inside the result set loop. currentDish:", currentDish)
+		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
+			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
+		if err != nil {
+			fmt.Println("got an error from the rows.Scan.")
+			fmt.Println("&currentDish.DishID:", currentDish.DishID)
+			fmt.Println("&currentDish.TempMatch:", currentDish.TempMatch)
+			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
+			return nil, fcerr
+		}
+		fmt.Println("now after the current dish scanned. currentDish:", currentDish)
+		resultDishes = append(resultDishes, currentDish)
+
+	}
+	if count < 1 {
+		fcerr := fcerr.NewNotFoundError("Database could not find any dishes that belong to this storage unit")
+		fmt.Println("Database could not find any storage dishes")
+		return nil, fcerr
+	}
+
+	return &resultDishes, nil
 }
