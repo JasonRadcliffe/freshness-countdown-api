@@ -696,11 +696,11 @@ func TestDb_GetUsers(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(GetUsersBase).WillReturnRows(rows)
 
@@ -729,7 +729,7 @@ func TestDb_GetUsers_NotFound(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"})
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
 
 	mock.ExpectQuery(GetUsersBase).WillReturnRows(rows)
 
@@ -769,9 +769,9 @@ func TestDb_GetUsers_RowScanError(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow("SHOULDBEINT", "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa")
 
 	mock.ExpectQuery(GetUsersBase).WillReturnRows(rows)
 
@@ -802,13 +802,14 @@ func TestDb_GetUserByID(t *testing.T) {
 		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "1v842d234523a",
 	}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
-			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnRows(rows)
 
@@ -826,6 +827,7 @@ func TestDb_GetUserByID(t *testing.T) {
 	assert.Equal(t, nU.AccessToken, resultingUser.AccessToken)
 	assert.Equal(t, nU.RefreshToken, resultingUser.RefreshToken)
 	assert.Equal(t, nU.AlexaUserID, resultingUser.AlexaUserID)
+	assert.Equal(t, nU.Admin, resultingUser.Admin)
 	assert.Equal(t, nU.TempMatch, resultingUser.TempMatch)
 
 }
@@ -860,7 +862,7 @@ func TestDb_GetUserByID_NotFound(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"})
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
 
@@ -883,9 +885,9 @@ func TestDb_GetUserByID_RowScanError(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow("SHOULDBEINT", "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
 
@@ -908,11 +910,11 @@ func TestDb_GetUserByID_FoundMultiple(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
 
@@ -944,13 +946,14 @@ func TestDb_GetUserByEmail(t *testing.T) {
 		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "1v842d234523a",
 	}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
-			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByEmailBase, nU.Email)).WillReturnRows(rows)
 
@@ -968,6 +971,7 @@ func TestDb_GetUserByEmail(t *testing.T) {
 	assert.Equal(t, nU.AccessToken, resultingUser.AccessToken)
 	assert.Equal(t, nU.RefreshToken, resultingUser.RefreshToken)
 	assert.Equal(t, nU.AlexaUserID, resultingUser.AlexaUserID)
+	assert.Equal(t, nU.Admin, resultingUser.Admin)
 	assert.Equal(t, nU.TempMatch, resultingUser.TempMatch)
 
 }
@@ -1002,7 +1006,7 @@ func TestDb_GetUserByEmail_NotFound(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"})
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByEmailBase, "nothing@gmail.com")).WillReturnRows(rows)
 
@@ -1025,9 +1029,9 @@ func TestDb_GetUserByEmail_RowScanError(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow("SHOULDBEINT", "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByEmailBase, "nothing@gmail.com")).WillReturnRows(rows)
 
@@ -1050,11 +1054,11 @@ func TestDb_GetUserByEmail_FoundMultiple(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByEmailBase, "nothing@gmail.com")).WillReturnRows(rows)
 
@@ -1086,13 +1090,14 @@ func TestDb_GetUserByAlexa(t *testing.T) {
 		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "1v842d234523a",
 	}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
-			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByAlexaBase, nU.AlexaUserID)).WillReturnRows(rows)
 
@@ -1192,11 +1197,11 @@ func TestDb_GetUserByAlexa_FoundMultiple(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByAlexaBase, "qwertyuiop")).WillReturnRows(rows)
 
@@ -1228,13 +1233,14 @@ func TestDb_GetUserByTempMatch(t *testing.T) {
 		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "1v842d234523a",
 	}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
-			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).WillReturnRows(rows)
 
@@ -1252,6 +1258,7 @@ func TestDb_GetUserByTempMatch(t *testing.T) {
 	assert.Equal(t, nU.AccessToken, resultingUser.AccessToken)
 	assert.Equal(t, nU.RefreshToken, resultingUser.RefreshToken)
 	assert.Equal(t, nU.AlexaUserID, resultingUser.AlexaUserID)
+	assert.Equal(t, nU.Admin, resultingUser.Admin)
 	assert.Equal(t, nU.TempMatch, resultingUser.TempMatch)
 
 }
@@ -1286,7 +1293,7 @@ func TestDb_GetUserByTempMatch_NotFound(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"})
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
 
@@ -1309,9 +1316,9 @@ func TestDb_GetUserByTempMatch_RowScanError(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow("SHOULDBEINT", "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
 
@@ -1334,11 +1341,11 @@ func TestDb_GetUserByTempMatch_FoundMultiple(t *testing.T) {
 	repo := &repository{db: db}
 
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa").
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
 
@@ -1369,18 +1376,19 @@ func TestDb_CreateUser(t *testing.T) {
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
 	createRows := sqlmock.NewRows([]string{""})
 
 	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", "asdfasdfa")
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa")
 
 	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
-		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)).
+		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)).
 		WillReturnRows(createRows)
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).WillReturnRows(getRows)
@@ -1411,11 +1419,12 @@ func TestDb_CreateUser_InsertError(t *testing.T) {
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
 	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
-		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)).
+		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)).
 		WillReturnError(errors.New("not possible"))
 
 	returnedUser, err := repo.CreateUser(*nU)
@@ -1444,13 +1453,14 @@ func TestDb_CreateUser_CheckError(t *testing.T) {
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
 	createRows := sqlmock.NewRows([]string{""})
 
 	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
-		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)).
+		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)).
 		WillReturnRows(createRows)
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).
@@ -1484,15 +1494,16 @@ func TestDb_UpdateUser(t *testing.T) {
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
 	updateRows := sqlmock.NewRows([]string{""})
 
 	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
-			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
 		nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch, nU.UserID)).WillReturnRows(updateRows)
@@ -1513,6 +1524,7 @@ func TestDb_UpdateUser(t *testing.T) {
 	assert.Equal(t, nU.AccessToken, returnedUser.AccessToken)
 	assert.Equal(t, nU.RefreshToken, returnedUser.RefreshToken)
 	assert.Equal(t, nU.AlexaUserID, returnedUser.AlexaUserID)
+	assert.Equal(t, nU.Admin, returnedUser.Admin)
 	assert.Equal(t, nU.TempMatch, returnedUser.TempMatch)
 
 }
@@ -1674,13 +1686,14 @@ func TestDb_DeleteUser_CheckError(t *testing.T) {
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
 		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
+		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
 	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
-		"access_token", "refresh_token", "alexa_user_id", "temp_match"}).
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
-			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.TempMatch)
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
 	deleteRows := sqlmock.NewRows([]string{""})
 

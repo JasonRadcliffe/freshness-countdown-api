@@ -10,7 +10,8 @@ type User struct {
 	CreatedDate  string `json:"TimeCreated"`
 	AccessToken  string `json:"AccessToken"`
 	RefreshToken string `json:"RefreshToken"`
-	AlexaUserID  string `json:"alexa_user_id"`
+	AlexaUserID  string `json:"AlexaUserID"`
+	Admin        bool   `json:"IsAdmin"`
 	TempMatch    string `json:"TempMatch"`
 }
 
