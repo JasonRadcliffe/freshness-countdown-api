@@ -134,6 +134,12 @@ func NewRepository(config string) (Repository, fcerr.FCErr) {
 	return &resultDB, nil
 }
 
+//NewRepositoryWithDB will get an instance of this type which satisfies the Repository interface.
+func NewRepositoryWithDB(db *sql.DB) (Repository, fcerr.FCErr) {
+	resultDB := repository{db}
+	return &resultDB, nil
+}
+
 //GetDishes returns the list of all dishes in the database
 func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
