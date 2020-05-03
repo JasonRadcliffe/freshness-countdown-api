@@ -53,6 +53,8 @@ type Handler interface {
 	GetUserByEmail(*gin.Context)
 	CreateUser(*gin.Context)
 	DeleteUser(*gin.Context)
+
+	HandleDishes(*gin.Context)
 }
 
 type handler struct {
@@ -75,6 +77,18 @@ func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2
 		oauthConfig:    oC,
 	}
 }
+
+//------New Handler Section - Dishes-----------------------------------------------------------------------
+//
+func (h *handler) HandleDishes(c *gin.Context) {
+	fmt.Println("New HandleDishes() function")
+
+	c.JSON(200, gin.H{
+		"message": "success. Tiger. Green.",
+	})
+}
+
+//---------------------------------------------------------------------------------------------------------
 
 //Ping is the test function to see if the server is being hit.
 func (h *handler) Ping(c *gin.Context) {
@@ -131,64 +145,62 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		fmt.Println("receivedState:", receivedState, "did not equal oauthstate:", oauthstate)
 		c.AbortWithStatus(http.StatusForbidden)
 		return
-	} else {
-		code := c.Request.FormValue("code")
-		token, err := h.oauthConfig.Exchange(c, code)
+	}
+	code := c.Request.FormValue("code")
+	token, err := h.oauthConfig.Exchange(c, code)
+	if err != nil {
+		fmt.Println("error when exchanging the token")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
+	if err != nil {
+		fmt.Println("error when getting the userinfo with the access token")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	defer response.Body.Close()
+
+	contents, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	json.Unmarshal(contents, &currentUser)
+	fmt.Println("Here is the current User:", currentUser)
+
+	if currentUser.VerifiedEmail == false {
+		fmt.Println("current user.VerifiedEmail is false. CurrentUser:", currentUser)
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	fmt.Println("Got a verified user!!!!!!", currentUser)
+
+	dbUser, err := h.userService.GetByEmail(currentUser.Email)
+	if err != nil {
+		fmt.Println("was not able to check the database for the user on login success")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	} else if dbUser.UserID <= 0 {
+		fmt.Println("loginSuccess could not find this user in the database! We should add them!!")
+		receivedUser, err := h.userService.Create(currentUser, token.AccessToken, token.RefreshToken)
 		if err != nil {
-			fmt.Println("error when exchanging the token")
+			fmt.Println("Was not successful in adding a new user to the database!")
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
+
 		}
-
-		response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
-		if err != nil {
-			fmt.Println("error when getting the userinfo with the access token")
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		defer response.Body.Close()
-
-		contents, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		json.Unmarshal(contents, &currentUser)
-		fmt.Println("Here is the current User:", currentUser)
-
-		if currentUser.VerifiedEmail == false {
-			fmt.Println("current user.VerifiedEmail is false. CurrentUser:", currentUser)
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		} else {
-			fmt.Println("Got a verified user!!!!!!", currentUser)
-
-			dbUser, err := h.userService.GetByEmail(currentUser.Email)
-			if err != nil {
-				fmt.Println("was not able to check the database for the user on login success")
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			} else if dbUser.UserID <= 0 {
-				fmt.Println("loginSuccess could not find this user in the database! We should add them!!")
-				receivedUser, err := h.userService.Create(currentUser, token.AccessToken, token.RefreshToken)
-				if err != nil {
-					fmt.Println("Was not successful in adding a new user to the database!")
-					c.AbortWithStatus(http.StatusInternalServerError)
-					return
-
-				}
-				fmt.Println("we just put a new user in the database!! with database user id:", receivedUser.UserID)
-
-			}
-			fmt.Println("We already have this user!!! database user id:", dbUser)
-
-			successData := []byte("<h1>Success!</h1>")
-			c.Data(200, "text/html", successData)
-		}
+		fmt.Println("we just put a new user in the database!! with database user id:", receivedUser.UserID)
 
 	}
+	fmt.Println("We already have this user!!! database user id:", dbUser)
+
+	successData := []byte("<h1>Success!</h1>")
+	c.Data(200, "text/html", successData)
 
 }
 

@@ -11,7 +11,9 @@ func mapRoutes() {
 
 	router.GET("/testGet", apiHandler.GetDishesWithAccessToken)
 
-	router.POST("/dishes", apiHandler.CreateDish)
+	router.POST("/dishes", apiHandler.HandleDishes)
+
+	//router.POST("/dishes", apiHandler.CreateDish)
 	router.PATCH("/dishes/:dish_id", apiHandler.UpdateDish)
 	router.DELETE("/dishes/:dish_id", apiHandler.DeleteDish)
 
