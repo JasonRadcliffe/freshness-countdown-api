@@ -9,7 +9,7 @@ import (
 //Service is the interface that defines the contract for a dish service.
 type Service interface {
 	GetByID(int) (*dish.Dish, fcerr.FCErr)
-	GetAll() (*dish.Dishes, fcerr.FCErr)
+	GetAll(string, string) (*dish.Dishes, fcerr.FCErr)
 }
 
 type service struct {
@@ -32,7 +32,7 @@ func (s *service) GetByID(id int) (*dish.Dish, fcerr.FCErr) {
 	return resultDish, nil
 }
 
-func (s *service) GetAll() (*dish.Dishes, fcerr.FCErr) {
+func (s *service) GetAll(alexaid string, accessToken string) (*dish.Dishes, fcerr.FCErr) {
 	resultDishes, err := s.repository.GetDishes()
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("dish service could not do GetAll()")

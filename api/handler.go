@@ -94,14 +94,16 @@ func (h *handler) HandleDishes(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("New HandleDishes() function: \n\nAccessToken:\n" + aR.AccessToken + "\nAlexaUserID:" + aR.AlexaUserID)
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 
-	testJason := c.Request.FormValue("testJason")
-	accessToken := c.Request.FormValue("accessToken")
+	if aR.RequestType == "GET" {
+		h.GetDishes(c, aR)
+	}
 
-	c.JSON(200, gin.H{
-		"message": "success. j:" + testJason + ". AccessToken:" + accessToken,
-	})
+	c.AbortWithStatus(http.StatusNotImplemented)
 }
 
 //---------------------------------------------------------------------------------------------------------
@@ -252,12 +254,14 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 }
 
 //GetDishes gets all the dishes the active user has
-func (h *handler) GetDishes(c *gin.Context) {
+func (h *handler) GetDishes(c *gin.Context, aR alexaRequest) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
 
-	dishes, err = h.dishService.GetAll()
+	accessToken := aR.AccessToken
+
+	dishes, err = h.dishService.GetAll(aR.AlexaUserID, aR.AccessToken)
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
 		fmt.Println("could not handle the GetDishes route")
