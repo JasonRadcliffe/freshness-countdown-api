@@ -272,7 +272,7 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 }
 
 //getDishes gets all the dishes the active user has
-func getDishes(aR alexaRequest, service dish.Service) (alexaResponse, fcerr.FCErr) {
+func getDishes(aR alexaRequest, service dish.Service) (dishDomain.Dishes, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
@@ -284,11 +284,11 @@ func getDishes(aR alexaRequest, service dish.Service) (alexaResponse, fcerr.FCEr
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
 		fmt.Println("could not handle the GetDishes route")
-		return *alexaResponse, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
 	}
 	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
 	alexaResponse.Message = *dishes
-	return *alexaResponse, nil
+	return *dishes, nil
 }
 
 func (h *handler) GetDishHandler(c *gin.Context) {
