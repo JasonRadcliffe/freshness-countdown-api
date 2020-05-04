@@ -65,9 +65,9 @@ type handler struct {
 }
 
 type alexaRequest struct {
+	RequestType string `json:"fcapiRequestType"`
 	AccessToken string `json:"accessToken"`
-	TestJason   string `json:"testJason"`
-	RequestType string `json:"requestType"`
+	AlexaUserID string `json:"alexaUserID"`
 }
 
 var oauthstate string
@@ -94,7 +94,7 @@ func (h *handler) HandleDishes(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("New HandleDishes() function: \n\nAccessToken:\n" + aR.AccessToken + "\nTestJason:" + aR.TestJason)
+	fmt.Println("New HandleDishes() function: \n\nAccessToken:\n" + aR.AccessToken + "\nAlexaUserID:" + aR.AlexaUserID)
 
 	testJason := c.Request.FormValue("testJason")
 	accessToken := c.Request.FormValue("accessToken")
