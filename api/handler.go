@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 
-	h "cloud.google.com/go/bigquery/benchmarks"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 	"golang.org/x/oauth2"
 
@@ -69,6 +68,10 @@ type alexaRequest struct {
 	AlexaUserID string `json:"alexaUserID"`
 }
 
+type alexaResponse struct {
+	Message dishDomain.Dishes `json:"message"`
+}
+
 var oauthstate string
 var oauthConfig *oauth2.Config
 var currentUser userDomain.OauthUser
@@ -99,7 +102,17 @@ func (h *handler) HandleDishes(c *gin.Context) {
 	}
 
 	if aR.RequestType == "GET" {
-		h.GetDishes(c, aR)
+		_, err := getDishes(aR, h.dishService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": "NEW----Pingtest - next switch to dishList",
+		})
+		return
+
 	}
 
 	c.AbortWithStatus(http.StatusNotImplemented)
@@ -252,24 +265,24 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 	})
 }
 
-//GetDishes gets all the dishes the active user has
-func GetDishes(c *gin.Context, aR alexaRequest) {
+//getDishes gets all the dishes the active user has
+func getDishes(aR alexaRequest, service dish.Service) (alexaResponse, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
 
 	//accessToken := aR.AccessToken
+	alexaResponse := &alexaResponse{}
+	dishes, err = service.GetAll(aR.AlexaUserID, aR.AccessToken)
 
-	dishes, err = h.dishService.GetAll(aR.AlexaUserID, aR.AccessToken)
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
 		fmt.Println("could not handle the GetDishes route")
-		return
+		return *alexaResponse, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
 	}
 	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
-	c.JSON(200, gin.H{
-		"message": dishes,
-	})
+	alexaResponse.Message = *dishes
+	return *alexaResponse, nil
 }
 
 func (h *handler) GetDishHandler(c *gin.Context) {
