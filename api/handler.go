@@ -110,12 +110,14 @@ func (h *handler) HandleDishes(c *gin.Context) {
 
 		marshaledDishes, merr := json.Marshal(dishList)
 		if merr != nil {
-			c.JSON(200, gin.H{
-				"message": marshaledDishes,
-			})
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
-
 		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledDishes,
+		})
+		return
 
 	}
 
