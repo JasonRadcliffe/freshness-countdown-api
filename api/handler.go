@@ -64,6 +64,12 @@ type handler struct {
 	oauthConfig    *oauth2.Config
 }
 
+type alexaRequest struct {
+	AccessToken string `json:"accessToken"`
+	TestJason   string `json:"testJason"`
+	RequestType string `json:"requestType"`
+}
+
 var oauthstate string
 var oauthConfig *oauth2.Config
 var currentUser userDomain.OauthUser
@@ -81,10 +87,14 @@ func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2
 //------New Handler Section - Dishes-----------------------------------------------------------------------
 //
 func (h *handler) HandleDishes(c *gin.Context) {
-	body, _ := c.GetRawData()
-	bodystr := string(body)
+	var aR alexaRequest
 
-	fmt.Println("New HandleDishes() function: \n\nbody:\n" + bodystr)
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(500)
+		return
+	}
+
+	fmt.Println("New HandleDishes() function: \n\nAccessToken:\n" + aR.AccessToken + "\nTestJason:" + aR.TestJason)
 
 	testJason := c.Request.FormValue("testJason")
 	accessToken := c.Request.FormValue("accessToken")
