@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	h "cloud.google.com/go/bigquery/benchmarks"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 	"golang.org/x/oauth2"
 
@@ -30,8 +31,6 @@ type Handler interface {
 	LoginSuccess(*gin.Context)
 
 	GetDishesWithAccessToken(*gin.Context)
-
-	GetDishes(*gin.Context, alexaRequest)
 	GetDishHandler(*gin.Context)
 	GetDishByID(*gin.Context)
 	GetExpiredDishes(*gin.Context)
@@ -254,7 +253,7 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 }
 
 //GetDishes gets all the dishes the active user has
-func (h *handler) GetDishes(c *gin.Context, aR alexaRequest) {
+func GetDishes(c *gin.Context, aR alexaRequest) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
