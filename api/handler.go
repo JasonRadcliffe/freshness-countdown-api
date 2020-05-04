@@ -102,16 +102,20 @@ func (h *handler) HandleDishes(c *gin.Context) {
 	}
 
 	if aR.RequestType == "GET" {
-		_, err := getDishes(aR, h.dishService)
+		dishList, err := getDishes(aR, h.dishService)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
-		c.JSON(200, gin.H{
-			"message": "NEW----Pingtest - next switch to dishList",
-		})
-		return
+		marshaledDishes, merr := json.Marshal(dishList)
+		if merr != nil {
+			c.JSON(200, gin.H{
+				"message": marshaledDishes,
+			})
+			return
+
+		}
 
 	}
 
