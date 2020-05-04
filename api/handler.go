@@ -81,7 +81,7 @@ func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2
 //------New Handler Section - Dishes-----------------------------------------------------------------------
 //
 func (h *handler) HandleDishes(c *gin.Context) {
-	fmt.Println("New HandleDishes() function")
+	fmt.Println("New HandleDishes() function: testJason:" + c.Request.FormValue("testJason"))
 
 	testJason := c.Request.FormValue("testJason")
 	accessToken := c.Request.FormValue("accessToken")
