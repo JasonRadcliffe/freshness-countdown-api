@@ -259,7 +259,7 @@ func (h *handler) GetDishes(c *gin.Context, aR alexaRequest) {
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
 
-	accessToken := aR.AccessToken
+	//accessToken := aR.AccessToken
 
 	dishes, err = h.dishService.GetAll(aR.AlexaUserID, aR.AccessToken)
 	if err != nil {
