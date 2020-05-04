@@ -31,7 +31,7 @@ type Handler interface {
 
 	GetDishesWithAccessToken(*gin.Context)
 
-	GetDishes(*gin.Context)
+	GetDishes(*gin.Context, alexaRequest)
 	GetDishHandler(*gin.Context)
 	GetDishByID(*gin.Context)
 	GetExpiredDishes(*gin.Context)
