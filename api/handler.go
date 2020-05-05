@@ -237,6 +237,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 
 //^^^^^^^Dish Section ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+/*
 func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 
 	fmt.Println("\n\n\nRunning the Alexa Test function:")
@@ -263,6 +264,7 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 		"message": "The emial address we got from the alexa service is: " + currentUser.Email,
 	})
 }
+*/
 
 //getDishes gets all the dishes the active user has
 func getDishes(aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
