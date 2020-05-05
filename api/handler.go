@@ -102,25 +102,39 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 
 	if aR.RequestType == "GET" {
 
-		dishID := c.Param("dish_id")
-		if dishID == "expired" {
+		dishIDParam := c.Param("dish_id")
+		if dishIDParam == "expired" {
 			fmt.Println("NEW____-----GOT THE EXPIRED ROUTE!!! ...... in the NEW handler!")
 			h.GetExpiredDishes(c)
 			return
-		} else if dishID != "" {
+		} else if dishIDParam != "" {
 			fmt.Println("NEW____-----GOT THE NORMAL GETDISHES ROUTE!!!...... in the NEW handler")
-			h.GetDishByID(c)
-			return
-		} else {
-			fmt.Println("got the getDishes route!!!")
-			dishList, err := getDishes(aR, h.dishService)
+			dishID, err := strconv.Atoi(dishIDParam)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			marshaledDish, err := getDishByID(dishID, aR, h.dishService)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
 			}
 
 			c.JSON(200, gin.H{
-				"message": dishList,
+				"message": marshaledDish,
+			})
+			return
+		} else {
+			fmt.Println("got the getDishes route!!!")
+			marshalleDishList, err := getDishes(aR, h.dishService)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"message": marshalleDishList,
 			})
 			return
 		}
@@ -302,6 +316,31 @@ func getDishes(aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
 		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
 	}
 	return marshaledDishes, nil
+}
+
+//getDishes gets all the dishes the active user has
+func getDishByID(dishID int, aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
+	var dish *dishDomain.Dish
+	var err fcerr.FCErr
+	fmt.Println("running non-gin getDishByID func")
+
+	//accessToken := aR.AccessToken
+
+	dish, err = service.GetByID(dishID, aR.AlexaUserID, aR.AccessToken)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
+		fmt.Println("could not handle the GetDishes route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got a dish!!! It is:", dish.Title)
+
+	marshaledDish, merr := json.Marshal(dish)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDish, nil
 }
 
 func (h *handler) GetDishHandler(c *gin.Context) {

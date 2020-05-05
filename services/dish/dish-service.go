@@ -8,7 +8,7 @@ import (
 
 //Service is the interface that defines the contract for a dish service.
 type Service interface {
-	GetByID(int) (*dish.Dish, fcerr.FCErr)
+	GetByID(int, string, string) (*dish.Dish, fcerr.FCErr)
 	GetAll(string, string) (*dish.Dishes, fcerr.FCErr)
 }
 
@@ -24,7 +24,7 @@ func NewService(repo db.Repository) Service {
 }
 
 //GetByID takes an int id and sends it to the database repo for lookup.
-func (s *service) GetByID(id int) (*dish.Dish, fcerr.FCErr) {
+func (s *service) GetByID(id int, alexaid string, accessToken string) (*dish.Dish, fcerr.FCErr) {
 	resultDish, err := s.repository.GetDishByID(id)
 	if err != nil {
 		return nil, fcerr.NewInternalServerError("could not do the GetByID, possibly not in the db")
