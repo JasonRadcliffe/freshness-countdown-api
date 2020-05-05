@@ -29,7 +29,6 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	GetDishesWithAccessToken(*gin.Context)
 	GetDishHandler(*gin.Context)
 	GetDishByID(*gin.Context)
 	GetExpiredDishes(*gin.Context)
@@ -108,14 +107,8 @@ func (h *handler) HandleDishes(c *gin.Context) {
 			return
 		}
 
-		marshaledDishes, merr := json.Marshal(dishList)
-		if merr != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
 		c.JSON(200, gin.H{
-			"message": marshaledDishes,
+			"message": dishList,
 		})
 		return
 
@@ -272,13 +265,13 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 }
 
 //getDishes gets all the dishes the active user has
-func getDishes(aR alexaRequest, service dish.Service) (dishDomain.Dishes, fcerr.FCErr) {
+func getDishes(aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
 
 	//accessToken := aR.AccessToken
-	alexaResponse := &alexaResponse{}
+
 	dishes, err = service.GetAll(aR.AlexaUserID, aR.AccessToken)
 
 	if err != nil {
@@ -286,9 +279,14 @@ func getDishes(aR alexaRequest, service dish.Service) (dishDomain.Dishes, fcerr.
 		fmt.Println("could not handle the GetDishes route")
 		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
 	}
+
 	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
-	alexaResponse.Message = *dishes
-	return *dishes, nil
+
+	marshaledDishes, merr := json.Marshal(dishes)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDishes, nil
 }
 
 func (h *handler) GetDishHandler(c *gin.Context) {
