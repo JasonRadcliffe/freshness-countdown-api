@@ -51,7 +51,7 @@ type Handler interface {
 	CreateUser(*gin.Context)
 	DeleteUser(*gin.Context)
 
-	HandleDishes(*gin.Context)
+	HandleDishesRequest(*gin.Context)
 }
 
 type handler struct {
@@ -87,7 +87,7 @@ func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2
 
 //------New Handler Section - Dishes-----------------------------------------------------------------------
 //
-func (h *handler) HandleDishes(c *gin.Context) {
+func (h *handler) HandleDishesRequest(c *gin.Context) {
 	var aR alexaRequest
 
 	if err := c.ShouldBindJSON(&aR); err != nil {
@@ -101,16 +101,27 @@ func (h *handler) HandleDishes(c *gin.Context) {
 	}
 
 	if aR.RequestType == "GET" {
-		dishList, err := getDishes(aR, h.dishService)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
+
+		dishID := c.Param("dish_id")
+		if dishID == "expired" {
+			fmt.Println("NEW____-----GOT THE EXPIRED ROUTE!!! ...... in the NEW handler!")
+			h.GetExpiredDishes(c)
+		} else if dishID != "" {
+			fmt.Println("NEW____-----GOT THE NORMAL GETDISHES ROUTE!!!...... in the NEW handler")
+			h.GetDishByID(c)
+		} else {
+			fmt.Println("got the getDishes route!!!")
+			dishList, err := getDishes(aR, h.dishService)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"message": dishList,
+			})
 			return
 		}
-
-		c.JSON(200, gin.H{
-			"message": dishList,
-		})
-		return
 
 	}
 
