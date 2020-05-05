@@ -29,8 +29,6 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	GetDishHandler(*gin.Context)
-	GetDishByID(*gin.Context)
 	GetExpiredDishes(*gin.Context)
 	CreateDish(*gin.Context)
 	UpdateDish(*gin.Context)
@@ -343,6 +341,8 @@ func getDishByID(dishID int, aR alexaRequest, service dish.Service) ([]byte, fce
 	return marshaledDish, nil
 }
 
+/*
+
 func (h *handler) GetDishHandler(c *gin.Context) {
 	dishID := c.Param("dish_id")
 	if dishID == "expired" {
@@ -353,7 +353,9 @@ func (h *handler) GetDishHandler(c *gin.Context) {
 		h.GetDishByID(c)
 	}
 }
+*/
 
+/*
 //GetDishByID gets a specific dish if it belongs to the current user
 func (h *handler) GetDishByID(c *gin.Context) {
 	dishIDstr := c.Param("dish_id")
@@ -374,6 +376,7 @@ func (h *handler) GetDishByID(c *gin.Context) {
 		"message": resultingDish,
 	})
 }
+*/
 
 //GetExpiredDishes gets all the dishes for the current user that are expired
 func (h *handler) GetExpiredDishes(c *gin.Context) {
