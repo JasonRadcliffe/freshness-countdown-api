@@ -328,6 +328,7 @@ func (h *handler) GetDishByID(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("about to return the json object with the message:", resultingDish)
 	c.JSON(200, gin.H{
 		"message": resultingDish,
 	})
