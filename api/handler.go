@@ -329,8 +329,7 @@ func (h *handler) GetDishByID(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{
-		"message": "NEW----ran the GetDish function from the new handler for this dish:" + dishIDstr +
-			" and got:" + resultingDish.Title,
+		"message": resultingDish,
 	})
 }
 
