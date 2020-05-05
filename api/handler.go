@@ -106,9 +106,11 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		if dishID == "expired" {
 			fmt.Println("NEW____-----GOT THE EXPIRED ROUTE!!! ...... in the NEW handler!")
 			h.GetExpiredDishes(c)
+			return
 		} else if dishID != "" {
 			fmt.Println("NEW____-----GOT THE NORMAL GETDISHES ROUTE!!!...... in the NEW handler")
 			h.GetDishByID(c)
+			return
 		} else {
 			fmt.Println("got the getDishes route!!!")
 			dishList, err := getDishes(aR, h.dishService)
