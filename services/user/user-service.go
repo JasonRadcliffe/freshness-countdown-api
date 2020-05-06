@@ -43,8 +43,11 @@ func (s *service) GetByID(id int) (*user.User, fcerr.FCErr) {
 //GetByEmail gets a user from the database with the given email address
 func (s *service) GetByEmail(email string) (*user.User, fcerr.FCErr) {
 	receivedUser, err := s.repository.GetUserByEmail(email)
-	if err != nil {
+	if err != nil && err.Status() == http.StatusNotFound {
 		fmt.Println("user service could not get the user by email")
+		fcerr := fcerr.NewNotFoundError("Did not find this user.")
+		return nil, fcerr
+	} else if err != nil {
 		fcerr := fcerr.NewInternalServerError("user service could not get the user by email")
 		return nil, fcerr
 	}
