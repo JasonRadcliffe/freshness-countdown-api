@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
@@ -22,6 +23,7 @@ type Service interface {
 	GetByAlexaID(string) (*user.User, fcerr.FCErr)
 	GetByAccessToken(string) (*user.User, fcerr.FCErr)
 	Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr)
+	UpdateAlexaID(user.User, string) (*user.User, fcerr.FCErr)
 }
 
 type service struct {
@@ -103,7 +105,7 @@ func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
 		if err != nil {
 			return nil, fcerr.NewInternalServerError("Attempted to add the user to the database, but something went wrong.")
 		}
-		fmt.Println("User has been added. New User ID:" + string(newUser.UserID))
+		fmt.Println("User has been added. New User ID:" + strconv.Itoa(newUser.UserID))
 		return newUser, nil
 
 	} else if err2 != nil || dbUser.UserID <= 0 {
@@ -140,6 +142,28 @@ func (s *service) Create(u user.OauthUser, aT string, rT string) (*user.User, fc
 	}
 
 	return receivedUser, nil
+}
+
+//UpdateAlexaID (u user.User, alexaID string) takes a user and a string and sets the alexaUserID equal to the given string in the database
+func (s *service) UpdateAlexaID(u user.User, alexaID string) (*user.User, fcerr.FCErr) {
+	newUser := &user.User{
+		UserID:       u.UserID,
+		Email:        u.Email,
+		FirstName:    u.FirstName,
+		LastName:     u.LastName,
+		FullName:     u.FullName,
+		CreatedDate:  u.CreatedDate,
+		AccessToken:  u.AccessToken,
+		RefreshToken: u.RefreshToken,
+		AlexaUserID:  alexaID,
+		TempMatch:    u.TempMatch,
+	}
+	updatedUser, err := s.repository.UpdateUser(*newUser)
+	if err != nil {
+		return nil, fcerr.NewInternalServerError("Error when updating the user with Alexa ID")
+	}
+
+	return updatedUser, nil
 }
 
 func (s *service) GenerateTempMatch() string {

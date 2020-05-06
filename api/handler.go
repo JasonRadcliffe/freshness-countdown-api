@@ -100,23 +100,27 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		return
 	}
 
-	alexaIDUser, err := h.userService.GetByAlexaID(aR.AlexaUserID)
-	if err != nil {
-		fmt.Println("couldn't get a user from alexa id:" + aR.AlexaUserID)
-	} else {
-		fmt.Println("Here is the user we got from the Alexa ID!" + alexaIDUser.Email)
-	}
-
-	accessTokenUser, err := h.userService.GetByAccessToken(aR.AccessToken)
-	if err != nil {
-		fmt.Println("couldn't get a user from access token:" + aR.AccessToken)
-	} else {
-		fmt.Println("Here is the user we got from the access token!" + accessTokenUser.Email)
-	}
-
 	if aR.AlexaUserID == "" && aR.AccessToken == "" {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
+	}
+
+	alexaIDUser, err := h.userService.GetByAlexaID(aR.AlexaUserID)
+	if err != nil {
+		fmt.Println("couldn't get a user from alexa id:" + aR.AlexaUserID)
+		accessTokenUser, err2 := h.userService.GetByAccessToken(aR.AccessToken)
+		if err2 != nil {
+			fmt.Println("couldn't get a user from access token:" + aR.AccessToken)
+		} else {
+			fmt.Println("Here is the user we got from the access token!" + accessTokenUser.Email)
+			fmt.Println("We should add the user's alexa ID since we know the db doesn't have it")
+			_, err3 := h.userService.UpdateAlexaID(*accessTokenUser, aR.AlexaUserID)
+			if err3 != nil {
+				fmt.Println("We couldn't add the alexa user id of the new user")
+			}
+		}
+	} else {
+		fmt.Println("Here is the user we got from the Alexa ID!" + alexaIDUser.Email)
 	}
 
 	if aR.RequestType == "GET" {
