@@ -52,17 +52,11 @@ func (s *service) Create(alexaid string, accessToken string, dishMap map[string]
 		return nil, fcerr.NewBadRequestError("storage id was not a number")
 	}
 
-	newPortions, err := strconv.Atoi(dishMap["portions"])
-	if err != nil {
-		return nil, fcerr.NewBadRequestError("portions was not a number")
-	}
+	fmt.Println("in the dish service Create(). Got this for expire window:\n" + dishMap["expireWindow"] + "\n")
+
 	newDish := &dish.Dish{
-		StorageID:   newStorageID,
-		Title:       dishMap["title"],
-		Description: dishMap["description"],
-		Priority:    dishMap["priority"],
-		DishType:    dishMap["dishType"],
-		Portions:    newPortions,
+		StorageID: newStorageID,
+		Title:     dishMap["title"],
 	}
 	fmt.Println("\nWe are doing the dish service Create() with this dish:\n", newDish)
 	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string

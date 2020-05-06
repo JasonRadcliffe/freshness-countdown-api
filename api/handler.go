@@ -69,7 +69,7 @@ type alexaRequest struct {
 	ExpireWindow string `json:"expireWindow"`
 	Priority     string `json:"priority"`
 	DishType     string `json:"dishType"`
-	Portions     int    `json:portions`
+	Portions     int    `json:"portions"`
 }
 
 type alexaResponse struct {
@@ -420,10 +420,12 @@ func createDish(aR alexaRequest, service dish.Service) fcerr.FCErr {
 
 	dishMap := make(map[string]string)
 	dishMap["storageID"] = string(aR.StorageID)
+	dishMap["title"] = aR.Title
+	dishMap["expireWindow"] = aR.ExpireWindow
 
-	_, err := service.Create(aR.AlexaUserID, aR.AccessToken, dishMap)
+	resultingDish, err := service.Create(aR.AlexaUserID, aR.AccessToken, dishMap)
 
-	if err != nil {
+	if err != nil || resultingDish.DishID == 0 {
 		return fcerr.NewInternalServerError("seems to have brokne")
 	}
 	return nil
