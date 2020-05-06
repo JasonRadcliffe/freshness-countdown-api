@@ -336,7 +336,8 @@ func TestDb_GetDishByTempMatch_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_CreateDish(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -364,22 +365,23 @@ func TestDb_CreateDish(t *testing.T) {
 		AddRow(5, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(CreateDishBase, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
-		nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO dish \(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match\) VALUES\(2, 3, ".+", ".+", ".+", ".+", "", "", -1, ".+"\)`).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByTempMatchBase, nD.TempMatch)).WillReturnRows(getRows)
+	mock.ExpectQuery(`Select \* FROM dish WHERE temp_match = ".+"`).
+		WillReturnRows(getRows)
 
 	returnedDish, err := repo.CreateDish(*nD)
 
 	assert.Nil(t, err)
 
 	assert.NotNil(t, returnedDish)
+
 	assert.Equal(t, nD.Title, returnedDish.Title)
 }
 
 func TestDb_CreateDish_InsertError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -400,7 +402,7 @@ func TestDb_CreateDish_InsertError(t *testing.T) {
 		TempMatch:   "9r842d3a351",
 	}
 
-	mock.ExpectQuery(fmt.Sprintf(CreateDishBase, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO dish \(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match\) VALUES\(2, 3, ".+", ".+", ".+", ".+", "", "", -1, ".+"\)`).
 		WillReturnError(errors.New("not possible"))
 
 	returnedDish, err := repo.CreateDish(*nD)
@@ -412,7 +414,7 @@ func TestDb_CreateDish_InsertError(t *testing.T) {
 }
 
 func TestDb_CreateDish_CheckError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -435,11 +437,10 @@ func TestDb_CreateDish_CheckError(t *testing.T) {
 
 	createRows := sqlmock.NewRows([]string{""})
 
-	mock.ExpectQuery(fmt.Sprintf(CreateDishBase, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
-		nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO dish \(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match\) VALUES\(2, 3, ".+", ".+", ".+", ".+", "", "", -1, ".+"\)`).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByTempMatchBase, nD.TempMatch)).
+	mock.ExpectQuery(fmt.Sprintf(GetDishByTempMatchBase, `.+`)).
 		WillReturnError(errors.New("not possible"))
 
 	returnedDish, err := repo.CreateDish(*nD)
@@ -700,7 +701,7 @@ func TestDb_GetUsers(t *testing.T) {
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
 			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(GetUsersBase).WillReturnRows(rows)
 
@@ -914,7 +915,7 @@ func TestDb_GetUserByID_FoundMultiple(t *testing.T) {
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
 			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
 
@@ -1058,7 +1059,7 @@ func TestDb_GetUserByEmail_FoundMultiple(t *testing.T) {
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
 			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByEmailBase, "nothing@gmail.com")).WillReturnRows(rows)
 
@@ -1201,7 +1202,7 @@ func TestDb_GetUserByAlexa_FoundMultiple(t *testing.T) {
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
 			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByAlexaBase, "qwertyuiop")).WillReturnRows(rows)
 
@@ -1345,7 +1346,7 @@ func TestDb_GetUserByTempMatch_FoundMultiple(t *testing.T) {
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
 			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa").
 		AddRow(2, "nothing2@gmail.com", "Robert", "Nothingtwo", "Robert Nothingtwo", "2016-02-02T15:04:05",
-			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
+			"ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop2", false, "asdfasdfa2")
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, "qwertyuiop")).WillReturnRows(rows)
 
@@ -1359,7 +1360,7 @@ func TestDb_GetUserByTempMatch_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_CreateUser(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -1374,10 +1375,9 @@ func TestDb_CreateUser(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		Admin:        false,
-		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
 	createRows := sqlmock.NewRows([]string{""})
@@ -1385,13 +1385,12 @@ func TestDb_CreateUser(t *testing.T) {
 	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
 		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(1, "nothing@gmail.com", "Bob", "Nothing", "Bob Nothing", "2016-01-02T15:04:05",
-			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "asdfasdfa")
+			"ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k", "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM", "qwertyuiop", false, "adfasfsgas654g")
 
-	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
-		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", "Bob", "Nothing", ".+", ".+", ".+", ".+", "qwertyuiop", false, ".+"\)`).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).WillReturnRows(getRows)
+	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).WillReturnRows(getRows)
 
 	returnedUser, err := repo.CreateUser(*nU)
 
@@ -1402,7 +1401,7 @@ func TestDb_CreateUser(t *testing.T) {
 }
 
 func TestDb_CreateUser_InsertError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -1417,14 +1416,13 @@ func TestDb_CreateUser_InsertError(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
 
-	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
-		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", "Bob", "Nothing", ".+", ".+", ".+", ".+", "qwertyuiop", false, ".+"\)`).
 		WillReturnError(errors.New("not possible"))
 
 	returnedUser, err := repo.CreateUser(*nU)
@@ -1436,7 +1434,7 @@ func TestDb_CreateUser_InsertError(t *testing.T) {
 }
 
 func TestDb_CreateUser_CheckError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -1451,7 +1449,7 @@ func TestDb_CreateUser_CheckError(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
@@ -1459,11 +1457,10 @@ func TestDb_CreateUser_CheckError(t *testing.T) {
 
 	createRows := sqlmock.NewRows([]string{""})
 
-	mock.ExpectQuery(fmt.Sprintf(CreateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
-		nU.CreatedDate, nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", "Bob", "Nothing", ".+", ".+", ".+", ".+", "qwertyuiop", false, ".+"\)`).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetUserByTempMatchBase, nU.TempMatch)).
+	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).
 		WillReturnError(errors.New("not possible"))
 
 	returnedUser, err := repo.CreateUser(*nU)
@@ -1492,7 +1489,7 @@ func TestDb_UpdateUser(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
@@ -1546,7 +1543,7 @@ func TestDb_UpdateUser_QueryError(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
@@ -1581,7 +1578,7 @@ func TestDb_UpdateUser_CheckError(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
@@ -1622,7 +1619,7 @@ func TestDb_DeleteUser(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
@@ -1653,7 +1650,7 @@ func TestDb_DeleteUser_QueryError(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		TempMatch:    "a4s65df6adhy4s5gjet",
 	}
@@ -1684,7 +1681,7 @@ func TestDb_DeleteUser_CheckError(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-02-02T15:04:05",
 		AccessToken:  "ya44.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "2//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "205i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		Admin:        false,
 		TempMatch:    "a4s65df6adhy4s5gjet",
@@ -1924,7 +1921,7 @@ func TestDb_GetStorageByID_FoundMultiple(t *testing.T) {
 }
 
 func TestDb_CreateStorage(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -1945,9 +1942,10 @@ func TestDb_CreateStorage(t *testing.T) {
 	getRows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
 		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(CreateStorageBase, nS.UserID, nS.Title, nS.Description, nS.TempMatch)).WillReturnRows(createRows)
+	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(2, "Fridge", "the main fridge", ".+"\)`).
+		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByTempMatchBase, nS.TempMatch)).WillReturnRows(getRows)
+	mock.ExpectQuery(`SELECT \* FROM storage WHERE temp_match=".+"`).WillReturnRows(getRows)
 
 	returnedStorage, err := repo.CreateStorage(*nS)
 
@@ -1958,7 +1956,7 @@ func TestDb_CreateStorage(t *testing.T) {
 }
 
 func TestDb_CreateStorage_InsertError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -1974,7 +1972,7 @@ func TestDb_CreateStorage_InsertError(t *testing.T) {
 		TempMatch:   "1v842d2343645",
 	}
 
-	mock.ExpectQuery(fmt.Sprintf(CreateStorageBase, nS.UserID, nS.Title, nS.Description, nS.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(2, "Fridge", "the main fridge", ".+"\)`).
 		WillReturnError(errors.New("not possible"))
 
 	returnedStorage, err := repo.CreateStorage(*nS)
@@ -1986,7 +1984,7 @@ func TestDb_CreateStorage_InsertError(t *testing.T) {
 }
 
 func TestDb_CreateStorage_CheckError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
 	}
@@ -2004,10 +2002,10 @@ func TestDb_CreateStorage_CheckError(t *testing.T) {
 
 	createRows := sqlmock.NewRows([]string{""})
 
-	mock.ExpectQuery(fmt.Sprintf(CreateStorageBase, nS.UserID, nS.Title, nS.Description, nS.TempMatch)).
+	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(2, "Fridge", "the main fridge", ".+"\)`).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByTempMatchBase, nS.TempMatch)).WillReturnError(errors.New("database error"))
+	mock.ExpectQuery(`SELECT \* FROM storage WHERE temp_match=".+"`).WillReturnError(errors.New("database error"))
 
 	returnedStorage, err := repo.CreateStorage(*nS)
 

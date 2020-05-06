@@ -556,8 +556,9 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 }
 
 func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
+	tMatch := generateTempMatch()
 	createUserQuery := fmt.Sprintf(CreateUserBase, u.Email, u.FirstName, u.LastName, u.FullName,
-		u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.Admin, u.TempMatch)
+		u.CreatedDate, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.Admin, tMatch)
 
 	fmt.Println("About to run this Query on the database:\n", createUserQuery)
 
@@ -568,7 +569,7 @@ func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
 		return nil, fcerr
 	}
 
-	checkUser, err := repo.GetUserByTempMatch(u.TempMatch)
+	checkUser, err := repo.GetUserByTempMatch(tMatch)
 	if err != nil {
 		fmt.Println("Trying to CreateUser, seem to have hit a snag. Got an error when checking what we just put in: " + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the user that was created." +
@@ -748,7 +749,8 @@ func (repo *repository) GetStorageByTempMatch(tM string) (*storage.Storage, fcer
 
 //CreateStorage takes a storage object and tries to add it to the database
 func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
-	createStorageQuery := fmt.Sprintf(CreateStorageBase, s.UserID, s.Title, s.Description, s.TempMatch)
+	tMatch := generateTempMatch()
+	createStorageQuery := fmt.Sprintf(CreateStorageBase, s.UserID, s.Title, s.Description, tMatch)
 
 	fmt.Println("About to run this Query on the database:\n", createStorageQuery)
 
@@ -759,7 +761,7 @@ func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcer
 		return nil, fcerr
 	}
 
-	checkStorage, err := repo.GetStorageByTempMatch(s.TempMatch)
+	checkStorage, err := repo.GetStorageByTempMatch(tMatch)
 	if err != nil {
 		fmt.Println("Trying to CreateStorage, seem to have hit a snag. Got an error when checking what we just put in: " + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the storage unit that was created." +
