@@ -62,7 +62,7 @@ type alexaRequest struct {
 	RequestType string `json:"fcapiRequestType"`
 	AccessToken string `json:"accessToken"`
 	AlexaUserID string `json:"alexaUserID"`
-	StorageID   int    `json:"storageID"`
+	StorageID   string `json:"storageID"`
 	//DishID       int    `json:"dishID"`
 	Title string `json:"title"`
 	//Description  string `json:"description"`
@@ -421,7 +421,7 @@ func createDish(aR alexaRequest, service dish.Service) fcerr.FCErr {
 	//4. if still not, return not authorized.
 
 	dishMap := make(map[string]string)
-	dishMap["storageID"] = string(aR.StorageID)
+	dishMap["storageID"] = aR.StorageID
 	dishMap["title"] = aR.Title
 	dishMap["expireWindow"] = aR.ExpireWindow
 
