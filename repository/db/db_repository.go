@@ -859,7 +859,7 @@ func (repo *repository) GetStorageDishes(sID int) (*dish.Dishes, fcerr.FCErr) {
 }
 
 func generateTempMatch() string {
-	n := make([]byte, 8)
+	n := make([]byte, 15)
 	rand.Read(n)
 	fmt.Println("New way:", base64.URLEncoding.EncodeToString(n))
 
