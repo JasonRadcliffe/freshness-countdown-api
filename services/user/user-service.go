@@ -93,11 +93,8 @@ func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
 
 	fmt.Println("Got a verified user!!!!!!", currentUser)
 
-	dbUser, err := s.GetByEmail(currentUser.Email)
-	if err != nil {
-		fmt.Println("was not able to check the database for the user on login success")
-		return nil, fcerr.NewInternalServerError("Was not able to check for the user after getting email address.")
-	} else if dbUser.UserID <= 0 {
+	dbUser, err2 := s.GetByEmail(currentUser.Email)
+	if err2 != nil && err2.Status() == http.StatusNotFound {
 		fmt.Println("We could not find this user in the database! (We should add them!?!)")
 		newUser, err := s.Create(currentUser, aT, "")
 		if err != nil {
@@ -105,7 +102,12 @@ func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
 		}
 		fmt.Println("User has been added. New User ID:" + string(newUser.UserID))
 		return newUser, nil
+
+	} else if err2 != nil || dbUser.UserID <= 0 {
+		fmt.Println("was not able to check the database for the user on login success")
+		return nil, fcerr.NewInternalServerError("Was not able to check for the user after getting email address.")
 	}
+
 	fmt.Println("We already have this user!!! database user id:", dbUser)
 	return dbUser, nil
 
