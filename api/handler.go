@@ -59,17 +59,17 @@ type handler struct {
 }
 
 type alexaRequest struct {
-	RequestType  string `json:"fcapiRequestType"`
-	AccessToken  string `json:"accessToken"`
-	AlexaUserID  string `json:"alexaUserID"`
-	StorageID    int    `json:"storageID"`
-	DishID       int    `json:"dishID"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
+	RequestType string `json:"fcapiRequestType"`
+	AccessToken string `json:"accessToken"`
+	AlexaUserID string `json:"alexaUserID"`
+	StorageID   int    `json:"storageID"`
+	//DishID       int    `json:"dishID"`
+	Title string `json:"title"`
+	//Description  string `json:"description"`
 	ExpireWindow string `json:"expireWindow"`
-	Priority     string `json:"priority"`
-	DishType     string `json:"dishType"`
-	Portions     int    `json:"portions"`
+	//Priority     string `json:"priority"`
+	//DishType     string `json:"dishType"`
+	//Portions     int    `json:"portions"`
 }
 
 type alexaResponse struct {
