@@ -100,6 +100,8 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("Here is the aR.RequestType in the HandleDishesRequest:\n" + string(aR.RequestType))
+
 	if aR.AlexaUserID == "" && aR.AccessToken == "" {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
