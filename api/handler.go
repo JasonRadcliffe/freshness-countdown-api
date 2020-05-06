@@ -30,7 +30,6 @@ type Handler interface {
 	LoginSuccess(*gin.Context)
 
 	GetExpiredDishes(*gin.Context)
-	CreateDish(*gin.Context)
 	UpdateDish(*gin.Context)
 	DeleteDish(*gin.Context)
 
@@ -60,9 +59,17 @@ type handler struct {
 }
 
 type alexaRequest struct {
-	RequestType string `json:"fcapiRequestType"`
-	AccessToken string `json:"accessToken"`
-	AlexaUserID string `json:"alexaUserID"`
+	RequestType  string `json:"fcapiRequestType"`
+	AccessToken  string `json:"accessToken"`
+	AlexaUserID  string `json:"alexaUserID"`
+	StorageID    int    `json:"storageID"`
+	DishID       int    `json:"dishID"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	ExpireWindow string `json:"expireWindow"`
+	Priority     string `json:"priority"`
+	DishType     string `json:"dishType"`
+	Portions     int    `json:portions`
 }
 
 type alexaResponse struct {
@@ -125,17 +132,29 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			return
 		} else {
 			fmt.Println("got the getDishes route!!!")
-			marshalleDishList, err := getDishes(aR, h.dishService)
+			marshaledDishList, err := getDishes(aR, h.dishService)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
 			}
 
 			c.JSON(200, gin.H{
-				"message": marshalleDishList,
+				"message": marshaledDishList,
 			})
 			return
 		}
+
+	} else if aR.RequestType == "POST" {
+		fmt.Println("doing the new createDishes() within the new dish request handler")
+		err := createDish(aR, h.dishService)
+		if err != nil {
+			c.AbortWithStatus(err.Status())
+			return
+		}
+		fmt.Println("Successfully added the dish to the database!")
+		c.JSON(200, gin.H{
+			"message": "Your dish has been added to the database.",
+		})
 
 	}
 
@@ -324,7 +343,7 @@ func getDishByID(dishID int, aR alexaRequest, service dish.Service) ([]byte, fce
 
 	//accessToken := aR.AccessToken
 
-	dish, err = service.GetByID(dishID, aR.AlexaUserID, aR.AccessToken)
+	dish, err = service.GetByID(aR.AlexaUserID, aR.AccessToken, dishID)
 
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
@@ -387,11 +406,28 @@ func (h *handler) GetExpiredDishes(c *gin.Context) {
 }
 
 //CreateDish adds a dish to the list
-func (h *handler) CreateDish(c *gin.Context) {
-	fmt.Println("NEW____-----Running the CreateDish function")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the CreateDish function",
-	})
+func createDish(aR alexaRequest, service dish.Service) fcerr.FCErr {
+
+	fmt.Println("running the createDish() non-handler function")
+
+	//1. Check if Alexa User is in DB
+
+	//2. If so, run function with passing user id
+
+	//3. If not, check if you can get a user in the db with the access token, and then run the function with the user id
+
+	//4. if still not, return not authorized.
+
+	dishMap := make(map[string]string)
+	dishMap["storageID"] = string(aR.StorageID)
+
+	_, err := service.Create(aR.AlexaUserID, aR.AccessToken, dishMap)
+
+	if err != nil {
+		return fcerr.NewInternalServerError("seems to have brokne")
+	}
+	return nil
+
 }
 
 //UpdateDish updates certain attributes of a specific dish

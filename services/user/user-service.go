@@ -15,6 +15,8 @@ import (
 type Service interface {
 	GetByID(int) (*user.User, fcerr.FCErr)
 	GetByEmail(string) (*user.User, fcerr.FCErr)
+	GetByAlexaID(string) (*user.User, fcerr.FCErr)
+	GetByAccessToken(string) (*user.User, fcerr.FCErr)
 	Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr)
 }
 
@@ -37,6 +39,30 @@ func (s *service) GetByID(id int) (*user.User, fcerr.FCErr) {
 //GetByEmail gets a user from the database with the given email address
 func (s *service) GetByEmail(email string) (*user.User, fcerr.FCErr) {
 	receivedUser, err := s.repository.GetUserByEmail(email)
+	if err != nil {
+		fmt.Println("user service could not get the user by email")
+		fcerr := fcerr.NewInternalServerError("user service could not get the user by email")
+		return nil, fcerr
+	}
+
+	return receivedUser, nil
+}
+
+//GetByAlexaID gets a user from the database with the given alexa user id
+func (s *service) GetByAlexaID(alexaID string) (*user.User, fcerr.FCErr) {
+	receivedUser, err := s.repository.GetUserByEmail(alexaID)
+	if err != nil {
+		fmt.Println("user service could not get the user by email")
+		fcerr := fcerr.NewInternalServerError("user service could not get the user by email")
+		return nil, fcerr
+	}
+
+	return receivedUser, nil
+}
+
+//GetByAccessToken gets a user from the database with the given access token
+func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
+	receivedUser, err := s.repository.GetUserByEmail(aT)
 	if err != nil {
 		fmt.Println("user service could not get the user by email")
 		fcerr := fcerr.NewInternalServerError("user service could not get the user by email")
