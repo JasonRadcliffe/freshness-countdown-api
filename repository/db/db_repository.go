@@ -1,7 +1,9 @@
 package db
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -277,8 +279,9 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 
 //CreateDish takes a dish object and tries to add it to the database
 func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
+	tMatch := generateTempMatch()
 	createDishQuery := fmt.Sprintf(CreateDishBase, d.UserID, d.StorageID, d.Title, d.Description,
-		d.CreatedDate, d.ExpireDate, d.Priority, d.DishType, d.Portions, d.TempMatch)
+		d.CreatedDate, d.ExpireDate, d.Priority, d.DishType, d.Portions, tMatch)
 
 	fmt.Println("About to run this Query on the database:\n", createDishQuery)
 
@@ -289,7 +292,7 @@ func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 		return nil, fcerr
 	}
 
-	checkDish, err := repo.GetDishByTempMatch(d.TempMatch)
+	checkDish, err := repo.GetDishByTempMatch(tMatch)
 	if err != nil {
 		fmt.Println("Trying to CreateDish, seem to have hit a snag. Got an error when checking what we just put in: " + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the dish that was created." +
@@ -853,4 +856,13 @@ func (repo *repository) GetStorageDishes(sID int) (*dish.Dishes, fcerr.FCErr) {
 	}
 
 	return &resultDishes, nil
+}
+
+func generateTempMatch() string {
+	n := make([]byte, 20)
+	rand.Read(n)
+	fmt.Println("New way:", base64.URLEncoding.EncodeToString(n))
+
+	return base64.URLEncoding.EncodeToString(n)
+
 }
