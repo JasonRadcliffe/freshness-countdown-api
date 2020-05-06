@@ -27,7 +27,7 @@ func NewService(repo db.Repository) Service {
 	}
 }
 
-//GetByID takes an int id and sends it to the database repo for lookup.
+//GetByID: (alexaid string, accessToken string, id int) takes an int id and sends it to the database repo for lookup.
 func (s *service) GetByID(alexaid string, accessToken string, id int) (*dish.Dish, fcerr.FCErr) {
 	resultDish, err := s.repository.GetDishByID(id)
 	if err != nil {
@@ -36,6 +36,7 @@ func (s *service) GetByID(alexaid string, accessToken string, id int) (*dish.Dis
 	return resultDish, nil
 }
 
+//GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
 func (s *service) GetAll(alexaid string, accessToken string) (*dish.Dishes, fcerr.FCErr) {
 	resultDishes, err := s.repository.GetDishes()
 	if err != nil {
