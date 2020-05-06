@@ -100,7 +100,19 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("Here is the aR.RequestType in the HandleDishesRequest:\n" + string(aR.RequestType))
+	alexaIDUser, err := h.userService.GetByAlexaID(aR.AlexaUserID)
+	if err != nil {
+		fmt.Println("couldn't get a user from alexa id:" + aR.AlexaUserID)
+	} else {
+		fmt.Println("Here is the user we got from the Alexa ID!" + alexaIDUser.Email)
+	}
+
+	accessTokenUser, err := h.userService.GetByAccessToken(aR.AccessToken)
+	if err != nil {
+		fmt.Println("couldn't get a user from access token:" + aR.AccessToken)
+	} else {
+		fmt.Println("Here is the user we got from the access token!" + accessTokenUser.Email)
+	}
 
 	if aR.AlexaUserID == "" && aR.AccessToken == "" {
 		c.AbortWithStatus(http.StatusUnauthorized)
