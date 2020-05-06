@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"github.com/jasonradcliffe/freshness-countdown-api/repository/db"
@@ -80,6 +81,7 @@ func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
 	if err != nil {
 		return nil, fcerr.NewInternalServerError("Error when trying to read response from Google about user identity")
 	}
+	fmt.Println("\nHere is the contents:\n", contents)
 
 	json.Unmarshal(contents, &currentUser)
 	fmt.Println("Here is the current User we are fetching with access token:", currentUser)
@@ -97,7 +99,12 @@ func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
 		return nil, fcerr.NewInternalServerError("Was not able to check for the user after getting email address.")
 	} else if dbUser.UserID <= 0 {
 		fmt.Println("We could not find this user in the database! (We should add them!?!)")
-		return nil, fcerr.NewNotFoundError("This user was not in the database")
+		newUser, err := s.Create(currentUser, aT, "")
+		if err != nil {
+			return nil, fcerr.NewInternalServerError("Attempted to add the user to the database, but something went wrong.")
+		}
+		fmt.Println("User has been added. New User ID:" + string(newUser.UserID))
+		return newUser, nil
 	}
 	fmt.Println("We already have this user!!! database user id:", dbUser)
 	return dbUser, nil
@@ -106,7 +113,9 @@ func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
 
 func (s *service) Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr) {
 	var newUser user.User
-	createdDate := "2016-01-02T15:04:05"
+
+	timeNow := time.Now().In(time.UTC)
+	createdDate := timeNow.Format("2006-01-02T15:04:05")
 	tempMatch := s.GenerateTempMatch()
 
 	newUser.Email = u.Email
