@@ -155,7 +155,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		}
 		fmt.Println("Successfully added the dish to the database!")
 		c.JSON(200, gin.H{
-			"message": "Your dish has been added to the database.",
+			"message": []byte("Your dish has been added to the database."),
 		})
 		return
 
