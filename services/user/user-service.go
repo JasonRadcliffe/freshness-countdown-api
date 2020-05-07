@@ -111,9 +111,11 @@ func (s *service) GetByAccessToken(aT string, client *Client) (*user.User, fcerr
 	if err != nil {
 		return nil, fcerr.NewInternalServerError("Error when trying to read response from Google about user identity")
 	}
-	fmt.Println("\nHere is the contents:\n", contents)
 
-	json.Unmarshal(contents, &currentUser)
+	err = json.Unmarshal(contents, &currentUser)
+	if err != nil {
+		return nil, fcerr.NewInternalServerError("Could not Unmarshal the data received from the AccessToken request into a valid user.")
+	}
 	fmt.Println("Here is the current User we are fetching with access token:", currentUser)
 
 	if currentUser.VerifiedEmail == false {
