@@ -51,11 +51,11 @@ func (s *service) GetByID(id int) (*user.User, fcerr.FCErr) {
 func (s *service) GetByEmail(email string) (*user.User, fcerr.FCErr) {
 	receivedUser, err := s.repository.GetUserByEmail(email)
 	if err != nil && err.Status() == http.StatusNotFound {
-		fmt.Println("user service could not get the user by email")
-		fcerr := fcerr.NewNotFoundError("Did not find this user.")
+		fmt.Println("Could not find this user in the system.")
+		fcerr := fcerr.NewNotFoundError("Could not find this user in the system.")
 		return nil, fcerr
 	} else if err != nil {
-		fcerr := fcerr.NewInternalServerError("user service could not get the user by email")
+		fcerr := fcerr.NewInternalServerError("Error while retrieving the user.")
 		return nil, fcerr
 	}
 
@@ -65,12 +65,14 @@ func (s *service) GetByEmail(email string) (*user.User, fcerr.FCErr) {
 //GetByAlexaID gets a user from the database with the given alexa user id
 func (s *service) GetByAlexaID(alexaID string) (*user.User, fcerr.FCErr) {
 	receivedUser, err := s.repository.GetUserByAlexa(alexaID)
-	if err != nil {
-		fmt.Println("user service could not get the user by alexa ID")
-		fcerr := fcerr.NewNotFoundError("user service could not get the user by email")
+	if err != nil && err.Status() == http.StatusNotFound {
+		fmt.Println("Could not find this user in the system.")
+		fcerr := fcerr.NewNotFoundError("Could not find this user in the system.")
+		return nil, fcerr
+	} else if err != nil {
+		fcerr := fcerr.NewInternalServerError("Error while retrieving the user.")
 		return nil, fcerr
 	}
-
 	return receivedUser, nil
 }
 
