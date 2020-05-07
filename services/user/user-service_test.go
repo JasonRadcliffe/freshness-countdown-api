@@ -1,9 +1,13 @@
 package user
 
 import (
+	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -11,6 +15,19 @@ import (
 	dbrepo "github.com/jasonradcliffe/freshness-countdown-api/repository/db"
 
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	googleAPIOKResponse = `{
+		"sub": "114668774842776472919",
+		"name": "Bob Nothing",
+		"given_name": "Bob",
+		"family_name": "Nothing",
+		"picture": "https://lh3.googleusercontent.com/a-/AOh14GjaNZnU1_PuxYIb9tO_3uVMV3e",
+		"email": "nothing@gmail.com",
+		"email_verified": true,
+		"locale": "en"
+	  }`
 )
 
 var nU = &userDomain.User{
@@ -25,6 +42,23 @@ var nU = &userDomain.User{
 	AlexaUserID:  "qwertyuiop",
 	Admin:        false,
 	TempMatch:    "1v842d234523a",
+}
+
+func testHTTPClient(handler http.Handler) (*http.Client, func()) {
+	s := httptest.NewTLSServer(handler)
+
+	cli := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, network, _ string) (net.Conn, error) {
+				return net.Dial(network, s.Listener.Addr().String())
+			},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	return cli, s.Close
 }
 
 func TestUser_GetByID(t *testing.T) {
@@ -272,18 +306,26 @@ func TestUser_GetByAccessToken(t *testing.T) {
 
 	userService := NewService(repo)
 
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(googleAPIOKResponse))
+	})
+	httpClient, teardown := testHTTPClient(h)
+	defer teardown()
+
+	client := NewClient()
+	client.httpClient = httpClient
+
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
 		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
 		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
 			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetUserByAlexaBase, nU.AlexaUserID)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(`SELECT \* FROM user WHERE email = ".+"`)).WillReturnRows(rows)
 
-	resultingUser, err := userService.GetByAlexaID(nU.AlexaUserID)
+	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resultingUser)
-	assert.Exactly(t, nU, resultingUser)
 }
 
 func TestUser_Create(t *testing.T) {
