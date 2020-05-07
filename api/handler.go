@@ -108,7 +108,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 	alexaIDUser, err := h.userService.GetByAlexaID(aR.AlexaUserID)
 	if err != nil {
 		fmt.Println("couldn't get a user from alexa id:" + aR.AlexaUserID)
-		accessTokenUser, err2 := h.userService.GetByAccessToken(aR.AccessToken)
+		accessTokenUser, err2 := h.userService.GetByAccessToken(aR.AccessToken, user.NewClient())
 		if err2 != nil {
 			fmt.Println("couldn't get a user from access token:" + aR.AccessToken)
 		} else {
