@@ -1,8 +1,6 @@
 package user
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -123,7 +121,6 @@ func (s *service) Create(u user.OauthUser, aT string, rT string) (*user.User, fc
 
 	timeNow := time.Now().In(time.UTC)
 	createdDate := timeNow.Format("2006-01-02T15:04:05")
-	tempMatch := s.GenerateTempMatch()
 
 	newUser.Email = u.Email
 	newUser.FirstName = u.FirstName
@@ -132,7 +129,6 @@ func (s *service) Create(u user.OauthUser, aT string, rT string) (*user.User, fc
 	newUser.CreatedDate = createdDate
 	newUser.AccessToken = aT
 	newUser.RefreshToken = rT
-	newUser.TempMatch = tempMatch
 
 	receivedUser, err := s.repository.CreateUser(newUser)
 	if err != nil {
@@ -156,7 +152,6 @@ func (s *service) UpdateAlexaID(u user.User, alexaID string) (*user.User, fcerr.
 		AccessToken:  u.AccessToken,
 		RefreshToken: u.RefreshToken,
 		AlexaUserID:  alexaID,
-		TempMatch:    u.TempMatch,
 	}
 	updatedUser, err := s.repository.UpdateUser(*newUser)
 	if err != nil {
@@ -164,10 +159,4 @@ func (s *service) UpdateAlexaID(u user.User, alexaID string) (*user.User, fcerr.
 	}
 
 	return updatedUser, nil
-}
-
-func (s *service) GenerateTempMatch() string {
-	n := make([]byte, 15)
-	rand.Read(n)
-	return base64.URLEncoding.EncodeToString(n)
 }
