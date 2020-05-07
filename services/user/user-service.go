@@ -19,9 +19,14 @@ type Service interface {
 	GetByID(int) (*user.User, fcerr.FCErr)
 	GetByEmail(string) (*user.User, fcerr.FCErr)
 	GetByAlexaID(string) (*user.User, fcerr.FCErr)
-	GetByAccessToken(string) (*user.User, fcerr.FCErr)
+	GetByAccessToken(string, *Client) (*user.User, fcerr.FCErr)
 	Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr)
 	UpdateAlexaID(user.User, string) (*user.User, fcerr.FCErr)
+}
+
+//Client can be pointed to real http.Client or mocked
+type Client struct {
+	httpClient *http.Client
 }
 
 type service struct {
@@ -33,6 +38,14 @@ func NewService(repo db.Repository) Service {
 	return &service{
 		repository: repo,
 	}
+}
+
+//NewClient gets a client - httpClient value can be changed
+func NewClient() *Client {
+	cli := Client{
+		httpClient: &http.Client{},
+	}
+	return &cli
 }
 
 //GetByID gets a user from the database with the given ID
@@ -77,11 +90,16 @@ func (s *service) GetByAlexaID(alexaID string) (*user.User, fcerr.FCErr) {
 }
 
 //GetByAccessToken gets a user from the database with the given access token
-func (s *service) GetByAccessToken(aT string) (*user.User, fcerr.FCErr) {
+func (s *service) GetByAccessToken(aT string, client *Client) (*user.User, fcerr.FCErr) {
 
 	var currentUser user.OauthUser
 
-	response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + aT)
+	req, err := http.NewRequest("GET", "https://openidconnect.googleapis.com/v1/userinfo?access_token="+aT, nil)
+	if err != nil {
+		return nil, fcerr.NewInternalServerError("Error when setting up the network request")
+	}
+
+	response, err := client.httpClient.Do(req)
 	if err != nil {
 		fmt.Println("error when getting the userinfo with the access token")
 		return nil, fcerr.NewInternalServerError("Error when trying to verify user identity")
