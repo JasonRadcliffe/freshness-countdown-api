@@ -63,6 +63,15 @@ var nU = &userDomain.User{
 	TempMatch:    "1v842d234523a",
 }
 
+var nOauthU = &userDomain.OauthUser{
+	Email:         "nothing@gmail.com",
+	FirstName:     "Bob",
+	LastName:      "Nothing",
+	FullName:      "Bob Nothing",
+	VerifiedEmail: true,
+	UserID:        2,
+}
+
 func testHTTPClient(handler http.Handler) (*http.Client, func()) {
 	s := httptest.NewTLSServer(handler)
 
@@ -492,7 +501,35 @@ func TestUser_GetByAccessToken_RetrieveEmptySet(t *testing.T) {
 }
 
 func TestUser_Create(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
+
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", ".+", ".+", ".+", ".+", ".*", ".*", false, ".*"\)`).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).WillReturnRows(getRows)
+
+	resultingUser, err := userService.Create(*nOauthU, nU.AccessToken, nU.RefreshToken)
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingUser)
+	assert.Equal(t, resultingUser, nU)
 }
 
 func TestUser_GenerateTempMatch(t *testing.T) {

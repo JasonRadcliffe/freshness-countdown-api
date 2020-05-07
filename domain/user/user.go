@@ -22,6 +22,8 @@ type OauthUser struct {
 	FirstName     string `json:"given_name"`
 	LastName      string `json:"family_name"`
 	FullName      string `json:"name"`
+	AccessToken   string `json:"access_token"`
+	RefreshToken  string `json:"refresh_token"`
 	UserID        int
 }
 
