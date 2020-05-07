@@ -801,7 +801,7 @@ func TestDb_GetUserByID(t *testing.T) {
 		FullName:     "Bob Nothing",
 		CreatedDate:  "2016-01-02T15:04:05",
 		AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
-		RefreshToken: "1//05i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+		RefreshToken: "105i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
 		AlexaUserID:  "qwertyuiop",
 		Admin:        false,
 		TempMatch:    "1v842d234523a",

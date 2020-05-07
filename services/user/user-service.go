@@ -37,7 +37,14 @@ func NewService(repo db.Repository) Service {
 
 //GetByID gets a user from the database with the given ID
 func (s *service) GetByID(id int) (*user.User, fcerr.FCErr) {
-	return nil, nil
+	receivedUser, err := s.repository.GetUserByID(id)
+	if err != nil && err.Status() == http.StatusNotFound {
+		return nil, fcerr.NewNotFoundError("Could not find this user in the system.")
+	} else if err != nil {
+		return nil, fcerr.NewInternalServerError("Error while retrieving the user.")
+	}
+
+	return receivedUser, nil
 }
 
 //GetByEmail gets a user from the database with the given email address
