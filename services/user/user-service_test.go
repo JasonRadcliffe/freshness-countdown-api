@@ -532,6 +532,59 @@ func TestUser_Create(t *testing.T) {
 	assert.Equal(t, resultingUser, nU)
 }
 
+func TestUser_Create_InsertError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", ".+", ".+", ".+", ".+", ".*", ".*", false, ".*"\)`).
+		WillReturnError(errors.New("Database Error"))
+
+	resultingUser, err := userService.Create(*nOauthU, nU.AccessToken, nU.RefreshToken)
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestUser_Create_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
+
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", ".+", ".+", ".+", ".+", ".*", ".*", false, ".*"\)`).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).WillReturnRows(getRows)
+
+	resultingUser, err := userService.Create(*nOauthU, nU.AccessToken, nU.RefreshToken)
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
 func TestUser_GenerateTempMatch(t *testing.T) {
 	assert.Equal(t, "", "")
 }
