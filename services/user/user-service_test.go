@@ -622,6 +622,66 @@ func TestUser_UpdateAlexaID(t *testing.T) {
 	assert.Equal(t, resultingUser, newUser)
 }
 
+func TestUser_UpdateAlexaID_UpdateError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	newAlexaID := "AMZ.23.NEWID"
+	newUser := nU
+	newUser.AlexaUserID = newAlexaID
+
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.AccessToken, nU.RefreshToken, newAlexaID, nU.TempMatch, nU.UserID)).
+		WillReturnError(errors.New("Database Error"))
+
+	resultingUser, err := userService.UpdateAlexaID(*nU, newAlexaID)
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestUser_UpdateAlexaID_CheckError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	newAlexaID := "AMZ.23.NEWID"
+	newUser := nU
+	newUser.AlexaUserID = newAlexaID
+
+	updateRows := sqlmock.NewRows([]string{""})
+
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.UpdateUserBase, nU.Email, nU.FirstName, nU.LastName, nU.FullName,
+		nU.AccessToken, nU.RefreshToken, newAlexaID, nU.TempMatch, nU.UserID)).
+		WillReturnRows(updateRows)
+
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetUserByIDBase, nU.UserID)).WillReturnError(errors.New("database error"))
+
+	resultingUser, err := userService.UpdateAlexaID(*nU, newAlexaID)
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
 func TestUser_GenerateTempMatch(t *testing.T) {
 	assert.Equal(t, "", "")
 }
