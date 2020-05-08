@@ -181,6 +181,7 @@ func (s *service) UpdateAlexaID(u user.User, alexaID string) (*user.User, fcerr.
 		AccessToken:  u.AccessToken,
 		RefreshToken: u.RefreshToken,
 		AlexaUserID:  alexaID,
+		TempMatch:    u.TempMatch,
 	}
 	updatedUser, err := s.repository.UpdateUser(*newUser)
 	if err != nil {
