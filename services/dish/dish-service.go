@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
+	userDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 	"github.com/jasonradcliffe/freshness-countdown-api/repository/db"
 )
@@ -12,7 +13,7 @@ import (
 //Service is the interface that defines the contract for a dish service.
 type Service interface {
 	GetByID(string, string, int) (*dish.Dish, fcerr.FCErr)
-	GetAll(string, string) (*dish.Dishes, fcerr.FCErr)
+	GetAll(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
 	Create(string, string, map[string]string) (*dish.Dish, fcerr.FCErr)
 }
 
@@ -37,7 +38,7 @@ func (s *service) GetByID(alexaid string, accessToken string, id int) (*dish.Dis
 }
 
 //GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
-func (s *service) GetAll(alexaid string, accessToken string) (*dish.Dishes, fcerr.FCErr) {
+func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
 	resultDishes, err := s.repository.GetDishes()
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("dish service could not do GetAll()")

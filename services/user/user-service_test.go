@@ -320,7 +320,7 @@ func TestUser_GetByAlexa_Error(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
-func TestUser_GetByAccessToken(t *testing.T) {
+func TestUser_GetOrCreateByAccessToken(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
@@ -350,14 +350,14 @@ func TestUser_GetByAccessToken(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(`SELECT \* FROM user WHERE email = ".+"`)).WillReturnRows(rows)
 
-	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+	resultingUser, err := userService.GetOrCreateByAccessToken(nU.AccessToken, client)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resultingUser)
 	assert.Equal(t, nU, resultingUser)
 }
 
-func TestUser_GetByAccessToken_ResponseUnmarshalError(t *testing.T) {
+func TestUser_GetOrCreateByAccessToken_ResponseUnmarshalError(t *testing.T) {
 	db, _, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
@@ -380,14 +380,14 @@ func TestUser_GetByAccessToken_ResponseUnmarshalError(t *testing.T) {
 	client := NewClient()
 	client.httpClient = httpClient
 
-	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+	resultingUser, err := userService.GetOrCreateByAccessToken(nU.AccessToken, client)
 
 	assert.Nil(t, resultingUser)
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
-func TestUser_GetByAccessToken_NonVerifiedUser(t *testing.T) {
+func TestUser_GetOrCreateByAccessToken_NonVerifiedUser(t *testing.T) {
 	db, _, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
@@ -410,14 +410,14 @@ func TestUser_GetByAccessToken_NonVerifiedUser(t *testing.T) {
 	client := NewClient()
 	client.httpClient = httpClient
 
-	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+	resultingUser, err := userService.GetOrCreateByAccessToken(nU.AccessToken, client)
 
 	assert.Nil(t, resultingUser)
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusBadRequest, err.Status())
 }
 
-func TestUser_GetByAccessToken_NewUserAdded(t *testing.T) {
+func TestUser_GetOrCreateByAccessToken_NewUserAdded(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
@@ -457,14 +457,14 @@ func TestUser_GetByAccessToken_NewUserAdded(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).WillReturnRows(getRows)
 
-	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+	resultingUser, err := userService.GetOrCreateByAccessToken(nU.AccessToken, client)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resultingUser)
 	assert.Equal(t, nU, resultingUser)
 }
 
-func TestUser_GetByAccessToken_RetrieveEmptySet(t *testing.T) {
+func TestUser_GetOrCreateByAccessToken_RetrieveEmptySet(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if testerr != nil {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
@@ -493,7 +493,7 @@ func TestUser_GetByAccessToken_RetrieveEmptySet(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(`SELECT \* FROM user WHERE email = ".+"`)).WillReturnRows(rows)
 
-	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+	resultingUser, err := userService.GetOrCreateByAccessToken(nU.AccessToken, client)
 
 	assert.Nil(t, resultingUser)
 	assert.NotNil(t, err)

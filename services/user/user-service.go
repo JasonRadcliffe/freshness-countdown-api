@@ -19,7 +19,7 @@ type Service interface {
 	GetByID(int) (*user.User, fcerr.FCErr)
 	GetByEmail(string) (*user.User, fcerr.FCErr)
 	GetByAlexaID(string) (*user.User, fcerr.FCErr)
-	GetByAccessToken(string, *Client) (*user.User, fcerr.FCErr)
+	GetOrCreateByAccessToken(string, *Client) (*user.User, fcerr.FCErr)
 	Create(u user.OauthUser, aT string, rT string) (*user.User, fcerr.FCErr)
 	UpdateAlexaID(user.User, string) (*user.User, fcerr.FCErr)
 }
@@ -89,8 +89,8 @@ func (s *service) GetByAlexaID(alexaID string) (*user.User, fcerr.FCErr) {
 	return receivedUser, nil
 }
 
-//GetByAccessToken gets a user from the database with the given access token
-func (s *service) GetByAccessToken(aT string, client *Client) (*user.User, fcerr.FCErr) {
+//GetOrCreateByAccessToken gets a user from the database with the given access token
+func (s *service) GetOrCreateByAccessToken(aT string, client *Client) (*user.User, fcerr.FCErr) {
 
 	var currentUser user.OauthUser
 

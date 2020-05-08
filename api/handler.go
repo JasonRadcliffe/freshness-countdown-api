@@ -58,7 +58,7 @@ type handler struct {
 	oauthConfig    *oauth2.Config
 }
 
-type alexaRequest struct {
+type apiRequest struct {
 	RequestType string `json:"fcapiRequestType"`
 	AccessToken string `json:"accessToken"`
 	AlexaUserID string `json:"alexaUserID"`
@@ -72,7 +72,7 @@ type alexaRequest struct {
 	//Portions     int    `json:"portions"`
 }
 
-type alexaResponse struct {
+type apiResponse struct {
 	Message dishDomain.Dishes `json:"message"`
 }
 
@@ -90,13 +90,37 @@ func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2
 	}
 }
 
+//ValidateUser looks at the request details and extracts the user making the request. Err is returned if not able to find OR add a user
+func ValidateUser(h *handler, aR apiRequest) (*userDomain.User, fcerr.FCErr) {
+	alexaIDUser, err := h.userService.GetByAlexaID(aR.AlexaUserID)
+	if err != nil {
+		fmt.Println("couldn't get a user from alexa id:" + aR.AlexaUserID)
+		accessTokenUser, err2 := h.userService.GetOrCreateByAccessToken(aR.AccessToken, user.NewClient())
+		if err2 != nil {
+			fmt.Println("couldn't get or create a user with access token:" + aR.AccessToken)
+			return nil, fcerr.NewUnauthorizedError("Could not validate this user")
+		}
+
+		fmt.Println("Here is the user we got from the access token!" + accessTokenUser.Email)
+		fmt.Println("We should add the user's alexa ID since we know the db doesn't have it")
+		_, err3 := h.userService.UpdateAlexaID(*accessTokenUser, aR.AlexaUserID)
+		if err3 != nil {
+			fmt.Println("We couldn't add the alexa user id of the new user - no biggie")
+		}
+		return accessTokenUser, nil
+	}
+
+	fmt.Println("Here is the user we got from the Alexa ID!" + alexaIDUser.Email)
+	return alexaIDUser, nil
+}
+
 //------New Handler Section - Dishes-----------------------------------------------------------------------
 //
 func (h *handler) HandleDishesRequest(c *gin.Context) {
-	var aR alexaRequest
+	var aR apiRequest
 
 	if err := c.ShouldBindJSON(&aR); err != nil {
-		c.AbortWithStatus(500)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -104,23 +128,10 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-
-	alexaIDUser, err := h.userService.GetByAlexaID(aR.AlexaUserID)
+	requestUser, err := ValidateUser(h, aR)
 	if err != nil {
-		fmt.Println("couldn't get a user from alexa id:" + aR.AlexaUserID)
-		accessTokenUser, err2 := h.userService.GetByAccessToken(aR.AccessToken, user.NewClient())
-		if err2 != nil {
-			fmt.Println("couldn't get a user from access token:" + aR.AccessToken)
-		} else {
-			fmt.Println("Here is the user we got from the access token!" + accessTokenUser.Email)
-			fmt.Println("We should add the user's alexa ID since we know the db doesn't have it")
-			_, err3 := h.userService.UpdateAlexaID(*accessTokenUser, aR.AlexaUserID)
-			if err3 != nil {
-				fmt.Println("We couldn't add the alexa user id of the new user")
-			}
-		}
-	} else {
-		fmt.Println("Here is the user we got from the Alexa ID!" + alexaIDUser.Email)
+		c.AbortWithStatus(http.StatusForbidden)
+		return
 	}
 
 	if aR.RequestType == "GET" {
@@ -150,7 +161,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			return
 		} else {
 			fmt.Println("got the getDishes route!!!")
-			marshaledDishList, err := getDishes(aR, h.dishService)
+			marshaledDishList, err := getDishes(requestUser, h.dishService)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
@@ -330,14 +341,14 @@ func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
 */
 
 //getDishes gets all the dishes the active user has
-func getDishes(aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
+func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
 	fmt.Println("NEW____-----Running the GetDishes function")
 
 	//accessToken := aR.AccessToken
 
-	dishes, err = service.GetAll(aR.AlexaUserID, aR.AccessToken)
+	dishes, err = service.GetAll(requestUser)
 
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
@@ -355,7 +366,7 @@ func getDishes(aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
 }
 
 //getDishes gets all the dishes the active user has
-func getDishByID(dishID int, aR alexaRequest, service dish.Service) ([]byte, fcerr.FCErr) {
+func getDishByID(dishID int, aR apiRequest, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dish *dishDomain.Dish
 	var err fcerr.FCErr
 	fmt.Println("running non-gin getDishByID func")
@@ -425,7 +436,7 @@ func (h *handler) GetExpiredDishes(c *gin.Context) {
 }
 
 //CreateDish adds a dish to the list
-func createDish(aR alexaRequest, service dish.Service) fcerr.FCErr {
+func createDish(aR apiRequest, service dish.Service) fcerr.FCErr {
 
 	fmt.Println("running the createDish() non-handler function")
 
