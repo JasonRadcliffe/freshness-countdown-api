@@ -1,9 +1,13 @@
 package user
 
 import (
+	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -12,6 +16,38 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+const googleAPIOKResponse = `{
+	"sub": "114668774842776472919",
+	"name": "Bob Nothing",
+	"given_name": "Bob",
+	"family_name": "Nothing",
+	"picture": "https://lh3.googleusercontent.com/a-/AOh14GjaNZnU1_PuxYIb9tO_3uVMV3e",
+	"email": "nothing@gmail.com",
+	"email_verified": true,
+	"locale": "en"
+	}`
+const googleAPIUnmarshalErrorResponse = `{
+	"sub": "114668774842776472919",
+	"name": 2,
+	"given_name": "Bob",
+	"family_name": "Nothing",
+	"picture": "https://lh3.googleusercontent.com/a-/AOh14GjaNZnU1_PuxYIb9tO_3uVMV3e",
+	"email": 4,
+	"email_verified": true,
+	"locale": "en"
+	}`
+
+const googleAPINotVerifiedErrorResponse = `{
+	"sub": "114668774842776472919",
+	"name": "Bob Nothing",
+	"given_name": "Bob",
+	"family_name": "Nothing",
+	"picture": "https://lh3.googleusercontent.com/a-/AOh14GjaNZnU1_PuxYIb9tO_3uVMV3e",
+	"email": "nothing@gmail.com",
+	"email_verified": false,
+	"locale": "en"
+	}`
 
 var nU = &userDomain.User{
 	UserID:       2,
@@ -25,6 +61,32 @@ var nU = &userDomain.User{
 	AlexaUserID:  "qwertyuiop",
 	Admin:        false,
 	TempMatch:    "1v842d234523a",
+}
+
+var nOauthU = &userDomain.OauthUser{
+	Email:         "nothing@gmail.com",
+	FirstName:     "Bob",
+	LastName:      "Nothing",
+	FullName:      "Bob Nothing",
+	VerifiedEmail: true,
+	UserID:        2,
+}
+
+func testHTTPClient(handler http.Handler) (*http.Client, func()) {
+	s := httptest.NewTLSServer(handler)
+
+	cli := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, network, _ string) (net.Conn, error) {
+				return net.Dial(network, s.Listener.Addr().String())
+			},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	return cli, s.Close
 }
 
 func TestUser_GetByID(t *testing.T) {
@@ -258,8 +320,216 @@ func TestUser_GetByAlexa_Error(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
+func TestUser_GetByAccessToken(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(googleAPIOKResponse))
+	})
+	httpClient, teardown := testHTTPClient(h)
+	defer teardown()
+
+	client := NewClient()
+	client.httpClient = httpClient
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(`SELECT \* FROM user WHERE email = ".+"`)).WillReturnRows(rows)
+
+	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingUser)
+	assert.Equal(t, nU, resultingUser)
+}
+
+func TestUser_GetByAccessToken_ResponseUnmarshalError(t *testing.T) {
+	db, _, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(googleAPIUnmarshalErrorResponse))
+	})
+	httpClient, teardown := testHTTPClient(h)
+	defer teardown()
+
+	client := NewClient()
+	client.httpClient = httpClient
+
+	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestUser_GetByAccessToken_NonVerifiedUser(t *testing.T) {
+	db, _, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(googleAPINotVerifiedErrorResponse))
+	})
+	httpClient, teardown := testHTTPClient(h)
+	defer teardown()
+
+	client := NewClient()
+	client.httpClient = httpClient
+
+	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusBadRequest, err.Status())
+}
+
+func TestUser_GetByAccessToken_NewUserAdded(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(googleAPIOKResponse))
+	})
+	httpClient, teardown := testHTTPClient(h)
+	defer teardown()
+
+	client := NewClient()
+	client.httpClient = httpClient
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
+
+	mock.ExpectQuery(fmt.Sprintf(`SELECT \* FROM user WHERE email = ".+"`)).WillReturnRows(rows)
+
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", ".+", ".+", ".+", ".+", ".*", ".*", false, ".*"\)`).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).WillReturnRows(getRows)
+
+	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingUser)
+	assert.Equal(t, nU, resultingUser)
+}
+
+func TestUser_GetByAccessToken_RetrieveEmptySet(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(googleAPIOKResponse))
+	})
+	httpClient, teardown := testHTTPClient(h)
+	defer teardown()
+
+	client := NewClient()
+	client.httpClient = httpClient
+
+	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
+		AddRow(0, "", "", "", "", "", "", "", "", "", "")
+
+	mock.ExpectQuery(fmt.Sprintf(`SELECT \* FROM user WHERE email = ".+"`)).WillReturnRows(rows)
+
+	resultingUser, err := userService.GetByAccessToken(nU.AccessToken, client)
+
+	assert.Nil(t, resultingUser)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
 func TestUser_Create(t *testing.T) {
-	assert.Equal(t, "", "")
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	userService := NewService(repo)
+
+	createRows := sqlmock.NewRows([]string{""})
+
+	getRows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
+		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"}).
+		AddRow(nU.UserID, nU.Email, nU.FirstName, nU.LastName, nU.FullName, nU.CreatedDate,
+			nU.AccessToken, nU.RefreshToken, nU.AlexaUserID, nU.Admin, nU.TempMatch)
+
+	mock.ExpectQuery(`INSERT INTO user \(.+\) VALUES\(".+", ".+", ".+", ".+", ".+", ".*", ".*", false, ".*"\)`).
+		WillReturnRows(createRows)
+
+	mock.ExpectQuery(`SELECT \* FROM user WHERE temp_match = ".+"`).WillReturnRows(getRows)
+
+	resultingUser, err := userService.Create(*nOauthU, nU.AccessToken, nU.RefreshToken)
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingUser)
+	assert.Equal(t, resultingUser, nU)
 }
 
 func TestUser_GenerateTempMatch(t *testing.T) {
