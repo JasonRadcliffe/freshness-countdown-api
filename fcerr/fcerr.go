@@ -70,3 +70,23 @@ func NewNotFoundError(message string) FCErr {
 		ErrError:   err,
 	}
 }
+
+//NewUnauthorizedError takes a message string and gives you a FCErr object with the status of http.StatusUnauthorized.
+func NewUnauthorizedError(message string) FCErr {
+	err := fmt.Sprint("Message: ", message, " - Status: ", http.StatusUnauthorized)
+	return fcerr{
+		ErrMessage: message,
+		ErrStatus:  http.StatusUnauthorized,
+		ErrError:   err,
+	}
+}
+
+//NewForbiddenError takes a message string and gives you a FCErr object with the status of http.StatusForbidden.
+func NewForbiddenError(message string) FCErr {
+	err := fmt.Sprint("Message: ", message, " - Status: ", http.StatusForbidden)
+	return fcerr{
+		ErrMessage: message,
+		ErrStatus:  http.StatusForbidden,
+		ErrError:   err,
+	}
+}
