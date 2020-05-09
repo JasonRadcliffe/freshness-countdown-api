@@ -96,7 +96,7 @@ type Repository interface {
 	GetDishByTempMatch(string) (*dish.Dish, fcerr.FCErr)
 	GetPersonalDishCount(user.User) (int, fcerr.FCErr)
 	CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
-	UpdateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
+	UpdateDish(dish.Dish) fcerr.FCErr
 	DeleteDish(user.User, dish.Dish) fcerr.FCErr
 
 	GetUsers() (*user.Users, fcerr.FCErr)
@@ -312,7 +312,7 @@ func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 }
 
 //UpdateDish takes a dish object and tries to update the existing dish in the database to match
-func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
+func (repo *repository) UpdateDish(d dish.Dish) fcerr.FCErr {
 	updateDishQuery := fmt.Sprintf(UpdateDishBase, d.PersonalDishID, d.StorageID, d.Title, d.Description,
 		d.ExpireDate, d.Priority, d.DishType, d.Portions, d.DishID)
 
@@ -321,19 +321,16 @@ func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	_, err := repo.db.Query(updateDishQuery)
 	if err != nil {
 		fmt.Println("got an error on the query:" + err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while updating the dish in the database")
-		return nil, fcerr
+		return fcerr.NewInternalServerError("Error while updating the dish in the database")
 	}
 
-	checkDish, err := repo.GetDishByID(d.UserID, d.PersonalDishID)
-	if err != nil {
-		fmt.Println("got an error on the check query:" + err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while checking the dish that was created." +
-			" Cannot verify if anything was updated in the Database")
-		return nil, fcerr
+	_, err2 := repo.GetDishByID(d.UserID, d.PersonalDishID)
+	if err2 != nil {
+		fmt.Println("got an error on the check query:")
+		return fcerr.NewInternalServerError("Error while checking the dish that was created. Cannot verify if anything was updated in the Database")
 	}
 
-	return checkDish, nil
+	return nil
 }
 
 //GetPersonalDishCount gets the number of dishes the given user has in the database

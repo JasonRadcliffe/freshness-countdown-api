@@ -208,6 +208,12 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			return
 		}
 		fmt.Println("got the dish update method for dish number:", dishID)
+		err2 := updateDish(requestUser, aR, h.dishService)
+		if err2 != nil {
+			fmt.Println("Got an error when doing the update dish route")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
 
 	} else if aR.RequestType == "DELETE" {
 
@@ -452,6 +458,32 @@ func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Ser
 	}
 	return nil
 
+}
+
+func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
+	fmt.Println("running the updateDish() non-handler function")
+
+	storageID, err := strconv.Atoi(aR.StorageID)
+	if err != nil {
+		return fcerr.NewBadRequestError("Error when creating the dish.")
+	}
+
+	newDish := &dishDomain.Dish{
+		StorageID:   storageID,
+		Title:       aR.Title,
+		Description: aR.Description,
+		Priority:    aR.Priority,
+		DishType:    aR.DishType,
+		Portions:    aR.Portions,
+	}
+	expireWindow := aR.ExpireWindow
+
+	err2 := service.Update(requestingUser, newDish, expireWindow)
+
+	if err2 != nil {
+		return fcerr.NewInternalServerError("Error when updating the dish")
+	}
+	return nil
 }
 
 //UpdateDish updates certain attributes of a specific dish
