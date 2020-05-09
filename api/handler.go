@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strconv"
 
-	h "cloud.google.com/go/bigquery/benchmarks"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 	"golang.org/x/oauth2"
 
@@ -247,7 +246,7 @@ func getOAuthURL(oC oauthConfig, state string) string {
 }
 
 func getOAuthToken(oC oauthConfig, c *gin.Context, code string) (*oauth2.Token, error) {
-	token, err := h.oauthConfig.Exchange(c, code)
+	token, err := oC.Exchange(c, code)
 	return token, err
 
 }
