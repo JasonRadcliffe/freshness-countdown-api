@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -12,6 +12,7 @@ import (
 	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/user"
 
+	dishDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 	userDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -33,6 +34,36 @@ var rUser = &userDomain.User{
 	AlexaUserID:  "qwertyuiop",
 	Admin:        false,
 	TempMatch:    "1v842d234523a",
+}
+
+var nD = &dishDomain.Dish{
+	DishID:         1,
+	PersonalDishID: 1,
+	UserID:         2,
+	StorageID:      3,
+	Title:          "Carrots",
+	Description:    "Some carrots we got at the store",
+	CreatedDate:    "2006-01-02T15:04:05",
+	ExpireDate:     "2020-10-13T08:00",
+	Priority:       "",
+	DishType:       "",
+	Portions:       -1,
+	TempMatch:      "9r842d3a351",
+}
+
+var nDex = &dishDomain.Dish{
+	DishID:         1,
+	PersonalDishID: 1,
+	UserID:         2,
+	StorageID:      3,
+	Title:          "Carrots",
+	Description:    "Some carrots we got at the store",
+	CreatedDate:    "2006-01-02T15:04:05",
+	ExpireDate:     "2019-10-13T08:00",
+	Priority:       "",
+	DishType:       "",
+	Portions:       -1,
+	TempMatch:      "9r842d3a351",
 }
 
 //Exchange is the mock method to get the token for oauth
@@ -66,15 +97,20 @@ func TestAPIHandler_getExpiredDishes(t *testing.T) {
 	mHandler := NewHandler(dS, sS, uS, oC)
 	fmt.Println("testing:", mHandler)
 
-	//rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
-	//	"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-	//	AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
-	//		nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nDex.DishID, nDex.PersonalDishID, nDex.UserID, nDex.StorageID, nDex.Title, nDex.Description, nDex.CreatedDate,
+			nDex.ExpireDate, nDex.Priority, nDex.DishType, nDex.Portions, nDex.TempMatch).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, 1)).WillReturnError(errors.New(""))
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase)).WillReturnRows(rows)
 
-	resultingDish, err := getExpiredDishes(rUser, dS)
-	fmt.Println("got this dish from the test:", resultingDish)
+	resultingDishesMarshaled, err := getExpiredDishes(rUser, dS)
+	var resultingDishes dishDomain.Dishes
+	jsonErr := json.Unmarshal(resultingDishesMarshaled, &resultingDishes)
 
-	assert.Equal(t, "", "")
+	assert.Nil(t, jsonErr)
+
+	assert.Equal(t, 1, len(resultingDishes))
 }

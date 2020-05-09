@@ -463,7 +463,7 @@ func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fce
 
 	//accessToken := aR.AccessToken
 
-	dishes, err = service.GetAll(rUser)
+	dishes, err = service.GetExpired(rUser)
 
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
