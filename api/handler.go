@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
+	h "cloud.google.com/go/bigquery/benchmarks"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
 	"golang.org/x/oauth2"
 
@@ -51,11 +53,18 @@ type Handler interface {
 	HandleDishesRequest(*gin.Context)
 }
 
+type oauthConfig interface {
+	//Exchange func(ctx context.Context, code string, opts ...AuthCodeOption)
+	Exchange(context.Context, string, ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+	//AuthCodeURL func(state string, opts ...AuthCodeOption)
+	AuthCodeURL(string, ...oauth2.AuthCodeOption) string
+}
+
 type handler struct {
 	dishService    dish.Service
 	storageService storage.Service
 	userService    user.Service
-	oauthConfig    *oauth2.Config
+	oauthConfig    oauthConfig
 }
 
 type apiRequest struct {
@@ -77,11 +86,10 @@ type apiResponse struct {
 }
 
 var oauthstate string
-var oauthConfig *oauth2.Config
 var currentUser userDomain.OauthUser
 
 //NewHandler takes a sequence of services and returns a new API Handler.
-func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC *oauth2.Config) Handler {
+func NewHandler(ds dish.Service, ss storage.Service, us user.Service, oC oauthConfig) Handler {
 	return &handler{
 		dishService:    ds,
 		storageService: ss,
@@ -221,7 +229,7 @@ func (h *handler) Login(c *gin.Context) {
 func (h *handler) Oauthlogin(c *gin.Context) {
 	fmt.Println("Running the Oauthlogin function")
 	oauthstate := numGenerator()
-	url := h.oauthConfig.AuthCodeURL(oauthstate, oauth2.AccessTypeOffline)
+	url := getOAuthURL(h.oauthConfig, oauthstate)
 	cookie := &http.Cookie{
 		Name:   "oauthstate",
 		Value:  oauthstate,
@@ -230,6 +238,18 @@ func (h *handler) Oauthlogin(c *gin.Context) {
 	}
 	http.SetCookie(c.Writer, cookie)
 	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+//Oauthlogin takes a user to the external google sign in flow.
+func getOAuthURL(oC oauthConfig, state string) string {
+	fmt.Println("Running the getURL function which takes an oauthConfig (real or mocked), does the .AuthCodeURL() method on it")
+	return oC.AuthCodeURL(state, oauth2.AccessTypeOffline)
+}
+
+func getOAuthToken(oC oauthConfig, c *gin.Context, code string) (*oauth2.Token, error) {
+	token, err := h.oauthConfig.Exchange(c, code)
+	return token, err
+
 }
 
 //LoginSuccess is where the Oauth provider routes to after successfully authenticating a user
@@ -250,7 +270,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		return
 	}
 	code := c.Request.FormValue("code")
-	token, err := h.oauthConfig.Exchange(c, code)
+	token, err := getOAuthToken(h.oauthConfig, c, code)
 	if err != nil {
 		fmt.Println("error when exchanging the token")
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -433,6 +453,31 @@ func (h *handler) GetExpiredDishes(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "NEW----Running the GetExpiredDishes function from the new hanlder",
 	})
+}
+
+func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
+	var dishes *dishDomain.Dishes
+	var err fcerr.FCErr
+	fmt.Println("NEW____-----Running the GetDishes function")
+
+	//accessToken := aR.AccessToken
+
+	dishes, err = service.GetAll(rUser)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
+		fmt.Println("could not handle the get expired dishes handle function")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	fmt.Println("The length of the list we got is:", len(*dishes))
+
+	marshaledDishes, merr := json.Marshal(dishes)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDishes, nil
 }
 
 //CreateDish adds a dish to the list
