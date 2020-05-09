@@ -34,9 +34,9 @@ type Dishes []Dish
 
 //IsExpired will check the ExpireDate field against the current time, and return true for expired
 func (d *Dish) IsExpired() (bool, fcerr.FCErr) {
-	expireTime, err := time.Parse("2006-01-02T15:04:05", d.ExpireDate)
+	expireTime, err := time.Parse("2006-01-02T15:04", d.ExpireDate)
 	if err != nil {
-		fmt.Println("The dish did not have a valid expiration date")
+		fmt.Println("The dish did not have a valid expiration date. Error:", err.Error())
 		return false, fcerr.NewInternalServerError("Encountered a dish without a valid expiration date")
 	}
 

@@ -13,6 +13,7 @@ import (
 //Service is the interface that defines the contract for a dish service.
 type Service interface {
 	GetByID(string, string, int) (*dish.Dish, fcerr.FCErr)
+	GetExpired(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
 	GetAll(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
 	Create(string, string, map[string]string) (*dish.Dish, fcerr.FCErr)
 }
@@ -50,7 +51,7 @@ func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCEr
 
 //GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
 func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
-	var cDish dish.Dish
+	//var cDish dish.Dish
 	var expiredDishes dish.Dishes
 	resultDishes, err := s.repository.GetDishes()
 
@@ -58,9 +59,9 @@ func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.
 		return nil, fcerr.NewInternalServerError("Could not retrieve the dishes")
 	}
 
-	for _, d := range *resultDishes {
-		fmt.Println("In the for each loop of the GetExpired!!")
-		check, err := cDish.IsExpired()
+	for i, d := range *resultDishes {
+		fmt.Println(i, "In the for each loop of the GetExpired!! dish Expire date:", d.ExpireDate)
+		check, err := d.IsExpired()
 		if err != nil {
 			continue
 		}
