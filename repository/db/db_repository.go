@@ -39,7 +39,7 @@ const UpdateDishBase = `UPDATE dish SET personal_id = %d, storage_id = %d, title
 	`priority = "%s", dish_type = "%s", portions = %d WHERE id=%d`
 
 //DeleteDishBase can be used with fmt.Sprintf() to get the Query for DeleteDish().
-const DeleteDishBase = `DELETE FROM dish WHERE id=%d`
+const DeleteDishBase = `DELETE FROM dish WHERE user_id = %d AND personal_id=%d`
 
 //GetUsersBase is the Query for GetUsers().
 const GetUsersBase = `SELECT * FROM user`
@@ -94,10 +94,10 @@ type Repository interface {
 	GetDishes(int) (*dish.Dishes, fcerr.FCErr)
 	GetDishByID(int, int) (*dish.Dish, fcerr.FCErr)
 	GetDishByTempMatch(string) (*dish.Dish, fcerr.FCErr)
-	GetPersonalDishCount(user.User) (int, fcerr.FCErr)
+	GetPersonalDishCount(int) (int, fcerr.FCErr)
 	CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
 	UpdateDish(dish.Dish) fcerr.FCErr
-	DeleteDish(user.User, dish.Dish) fcerr.FCErr
+	DeleteDish(int, int) fcerr.FCErr
 
 	GetUsers() (*user.Users, fcerr.FCErr)
 	GetUserByID(int) (*user.User, fcerr.FCErr)
@@ -334,8 +334,8 @@ func (repo *repository) UpdateDish(d dish.Dish) fcerr.FCErr {
 }
 
 //GetPersonalDishCount gets the number of dishes the given user has in the database
-func (repo *repository) GetPersonalDishCount(u user.User) (int, fcerr.FCErr) {
-	getPersonalDishCountQuery := fmt.Sprintf(GetPersonalDishCountBase, u.UserID)
+func (repo *repository) GetPersonalDishCount(userID int) (int, fcerr.FCErr) {
+	getPersonalDishCountQuery := fmt.Sprintf(GetPersonalDishCountBase, userID)
 	personalDishCountRow := repo.db.QueryRow(getPersonalDishCountQuery)
 	var personalDishCount int
 	err := personalDishCountRow.Scan(&personalDishCount)
@@ -348,15 +348,15 @@ func (repo *repository) GetPersonalDishCount(u user.User) (int, fcerr.FCErr) {
 
 }
 
-//DeleteDish takes a dish object and tries to delete the existing dish from the database
-func (repo *repository) DeleteDish(u user.User, d dish.Dish) fcerr.FCErr {
-	personalDishCount, err := repo.GetPersonalDishCount(u)
+//DeleteDish takes a requesting user and a personal dish id and tries to delete the dish
+func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
+	personalDishCount, err := repo.GetPersonalDishCount(userID)
 	if err != nil {
 		return fcerr.NewInternalServerError("Error when Deleting the dish")
 	}
 
 	pDSstr := ""
-	for i := d.PersonalDishID + 1; i <= personalDishCount; i++ {
+	for i := pID + 1; i <= personalDishCount; i++ {
 		if i == personalDishCount {
 			pDSstr = pDSstr + strconv.Itoa(i)
 		} else {
@@ -365,7 +365,7 @@ func (repo *repository) DeleteDish(u user.User, d dish.Dish) fcerr.FCErr {
 
 	}
 
-	deleteDishQuery := fmt.Sprintf(DeleteDishBase, d.DishID)
+	deleteDishQuery := fmt.Sprintf(DeleteDishBase, userID, pID)
 
 	_, err2 := repo.db.Query(deleteDishQuery)
 	if err2 != nil {
@@ -384,7 +384,7 @@ func (repo *repository) DeleteDish(u user.User, d dish.Dish) fcerr.FCErr {
 		return fcerr
 	}
 
-	returnedDish, err := repo.GetDishByID(d.UserID, d.PersonalDishID)
+	returnedDish, err := repo.GetDishByID(userID, pID)
 	if err == nil {
 		fmt.Println("Expected an error here, but didn't get one!! Dish Title:" + returnedDish.Title)
 		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database, could not verify it was deleted.")

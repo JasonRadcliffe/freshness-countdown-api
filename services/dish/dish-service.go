@@ -17,6 +17,7 @@ type Service interface {
 	GetAll(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
 	Create(*userDomain.User, *dish.Dish, string) (*dish.Dish, fcerr.FCErr)
 	Update(*userDomain.User, *dish.Dish, string) fcerr.FCErr
+	Delete(*userDomain.User, int) fcerr.FCErr
 }
 
 type service struct {
@@ -85,7 +86,7 @@ func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, ex
 	timeNow := time.Now().In(time.UTC)
 	createdDate := timeNow.Format(datePattern)
 
-	personalCount, err := s.repository.GetPersonalDishCount(*requestingUser)
+	personalCount, err := s.repository.GetPersonalDishCount(requestingUser.UserID)
 	if err != nil {
 		return nil, fcerr.NewInternalServerError("Error when creating the dish.")
 	}
@@ -118,6 +119,17 @@ func (s *service) Update(requestingUser *userDomain.User, newDish *dish.Dish, ex
 	err := s.repository.UpdateDish(*newDish)
 	if err != nil {
 		return fcerr.NewInternalServerError("Dish Service could not do the Create()")
+	}
+	return nil
+}
+
+func (s *service) Delete(requestingUser *userDomain.User, dishID int) fcerr.FCErr {
+
+	fmt.Println("We are doing the dish service Delete() with this dish:\n", dishID)
+	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string
+	err := s.repository.DeleteDish(requestingUser.UserID, dishID)
+	if err != nil {
+		return fcerr.NewInternalServerError("Dish Service could not do the Delete()")
 	}
 	return nil
 

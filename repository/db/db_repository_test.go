@@ -582,11 +582,11 @@ func TestDb_DeleteDish(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetPersonalDishCountBase, nD.UserID)).WillReturnRows(countRow)
 
-	mock.ExpectQuery(fmt.Sprintf(DeleteDishBase, nD.DishID)).WillReturnRows(deleteRows)
+	mock.ExpectQuery(fmt.Sprintf(DeleteDishBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(deleteRows)
 
 	mock.ExpectQuery(`UPDATE dish SET personal_id = personal_id - 1 WHERE user_id = 1 AND personal_id IN(3)`).WillReturnRows(updateRows)
 
-	err := repo.DeleteDish(*nU, *nD)
+	err := repo.DeleteDish(nU.UserID, nD.PersonalDishID)
 
 	assert.Nil(t, err)
 }
@@ -602,7 +602,7 @@ func TestDb_DeleteDish_QueryError(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetPersonalDishCountBase, nD.UserID)).WillReturnError(errors.New("database error"))
 
-	err := repo.DeleteDish(*nU, *nD)
+	err := repo.DeleteDish(nU.UserID, nD.PersonalDishID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())

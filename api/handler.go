@@ -30,9 +30,6 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	UpdateDish(*gin.Context)
-	DeleteDish(*gin.Context)
-
 	GetStorageDishes(*gin.Context)
 
 	GetStorageByID(*gin.Context)
@@ -216,6 +213,18 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		}
 
 	} else if aR.RequestType == "DELETE" {
+		dishID, err := strconv.Atoi(dishIDParam)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		fmt.Println("got the dish delete method for dish number:", dishID)
+		err2 := deleteDish(requestUser, dishID, h.dishService)
+		if err2 != nil {
+			fmt.Println("Got an error when doing the update dish route")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
 
 	}
 
@@ -460,6 +469,7 @@ func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Ser
 
 }
 
+//updateDish takes a requesting user, and an API request along with the dish service to update the dish to the values contained in the apirequest
 func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
 	fmt.Println("running the updateDish() non-handler function")
 
@@ -486,22 +496,14 @@ func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Ser
 	return nil
 }
 
-//UpdateDish updates certain attributes of a specific dish
-func (h *handler) UpdateDish(c *gin.Context) {
-	dishID := c.Param("dish_id")
-	fmt.Println("NEW____-----Running the UpdateDish function for this dish:", dishID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the UpdateDish function for this dish:" + dishID,
-	})
-}
-
-//DeleteDish deletes a specific dish from the list
-func (h *handler) DeleteDish(c *gin.Context) {
-	dishID := c.Param("dish_id")
-	fmt.Println("NEW____-----Running the DeleteDish function for this dish:", dishID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the DeleteDish function for this dish:" + dishID,
-	})
+//deleteDish takes a requesting user, and a dish ID along with the dish service to delete the dish with the personal id given
+func deleteDish(requestingUser *userDomain.User, dishID int, service dish.Service) fcerr.FCErr {
+	fmt.Println("running the updateDish() non-handler function")
+	err := service.Delete(requestingUser, dishID)
+	if err != nil {
+		return fcerr.NewInternalServerError("Error when deleting the dish")
+	}
+	return nil
 }
 
 //GetStorageDishes gets all the dishes for the active user for a specific storage unit.
