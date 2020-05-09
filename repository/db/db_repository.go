@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
@@ -20,15 +21,21 @@ const GetDishesBase = `SELECT * FROM dish`
 const GetDishByIDBase = `SELECT * FROM dish WHERE id = %d`
 
 //GetDishByTempMatchBase can be used with fmt.Sprintf() to get the Query for GetDishByTempMatch().
-const GetDishByTempMatchBase = `Select * FROM dish WHERE temp_match = "%s"`
+const GetDishByTempMatchBase = `SELECT * FROM dish WHERE temp_match = "%s"`
+
+//GetPersonalDishCountBase returns the number of dishes a given user has in the database, to be used for personal_id field
+const GetPersonalDishCountBase = `SELECT COUNT(*) FROM dish WHERE user_id = %d`
+
+//DecrementSomeDishesBase is used to shift every dish "up" after one in the middle of the dish list is deleted
+const DecrementSomeDishesBase = `UPDATE dish SET personal_id = personal_id - 1 WHERE user_id = %d AND personal_id IN(%s)`
 
 //CreateDishBase can be used with fmt.Sprintf() to get the Query for CreateDish().
 const CreateDishBase = `INSERT INTO dish ` +
-	`(user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match) ` +
-	`VALUES(%d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s")`
+	`(personal_id, user_id, storage_id, title, description, created_date, expire_date, priority, dish_type, portions, temp_match) ` +
+	`VALUES(%d, %d, %d, "%s", "%s", "%s", "%s", "%s", "%s", %d, "%s")`
 
 //UpdateDishBase can be used with fmt.Sprintf() to get the Query for UpdateDish().
-const UpdateDishBase = `UPDATE dish SET storage_id = "%d", title = "%s", description = "%s", expire_date = "%s", ` +
+const UpdateDishBase = `UPDATE dish SET personal_id = %d, storage_id = %d, title = "%s", description = "%s", expire_date = "%s", ` +
 	`priority = "%s", dish_type = "%s", portions = %d WHERE id=%d`
 
 //DeleteDishBase can be used with fmt.Sprintf() to get the Query for DeleteDish().
@@ -161,7 +168,7 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 		count++
 		var currentDish dish.Dish
 		fmt.Println("Inside the result set loop. currentDish:", currentDish)
-		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+		err := rows.Scan(&currentDish.DishID, &currentDish.PersonalDishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
 			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
 			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
 		if err != nil {
@@ -209,7 +216,7 @@ func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
 
 		var currentDish dish.Dish
 		fmt.Println("Inside the result set loop. currentDish:", currentDish)
-		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+		err := rows.Scan(&currentDish.DishID, &currentDish.PersonalDishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
 			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
 			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
 		if err != nil {
@@ -256,7 +263,7 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 
 		var currentDish dish.Dish
 		fmt.Println("Inside the result set loop. currentDish:", currentDish)
-		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+		err := rows.Scan(&currentDish.DishID, &currentDish.PersonalDishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
 			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
 			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
 		if err != nil {
@@ -280,7 +287,7 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 //CreateDish takes a dish object and tries to add it to the database
 func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	tMatch := generateTempMatch()
-	createDishQuery := fmt.Sprintf(CreateDishBase, d.UserID, d.StorageID, d.Title, d.Description,
+	createDishQuery := fmt.Sprintf(CreateDishBase, d.PersonalDishID, d.UserID, d.StorageID, d.Title, d.Description,
 		d.CreatedDate, d.ExpireDate, d.Priority, d.DishType, d.Portions, tMatch)
 
 	fmt.Println("About to run this Query on the database:\n", createDishQuery)
@@ -305,7 +312,7 @@ func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 
 //UpdateDish takes a dish object and tries to update the existing dish in the database to match
 func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
-	updateDishQuery := fmt.Sprintf(UpdateDishBase, d.StorageID, d.Title, d.Description,
+	updateDishQuery := fmt.Sprintf(UpdateDishBase, d.PersonalDishID, d.StorageID, d.Title, d.Description,
 		d.ExpireDate, d.Priority, d.DishType, d.Portions, d.DishID)
 
 	fmt.Println("About to run this Query on the database:\n", updateDishQuery)
@@ -330,14 +337,43 @@ func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 
 //DeleteDish takes a dish object and tries to delete the existing dish from the database
 func (repo *repository) DeleteDish(d dish.Dish) fcerr.FCErr {
+	//TODO - fix hardcoding of user id 1 after we have the requesting user here
+	getPersonalDishCountQuery := fmt.Sprintf(GetPersonalDishCountBase, 1)
+	personalDishCountRow := repo.db.QueryRow(getPersonalDishCountQuery)
+	var personalDishCount int
+	err := personalDishCountRow.Scan(&personalDishCount)
+	if err != nil {
+		fmt.Println("got an error on the get personal count process:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database - before delete command")
+		return fcerr
+	}
+	pDSstr := ""
+	for i := d.PersonalDishID + 1; i <= personalDishCount; i++ {
+		if i == personalDishCount {
+			pDSstr = pDSstr + strconv.Itoa(i)
+		} else {
+			pDSstr = pDSstr + strconv.Itoa(i) + ","
+		}
+
+	}
+
 	deleteDishQuery := fmt.Sprintf(DeleteDishBase, d.DishID)
 
-	_, err := repo.db.Query(deleteDishQuery)
-	if err != nil {
+	_, err2 := repo.db.Query(deleteDishQuery)
+	if err2 != nil {
 		fmt.Println("got an error on the delete query:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database")
 		return fcerr
+	}
 
+	//TODO - fix hardcoding of user id 1 after we have the requesting user here
+	decrementSomeDishesQuery := fmt.Sprintf(DecrementSomeDishesBase, 1, pDSstr)
+	fmt.Println("about to run this query on the db:", decrementSomeDishesQuery)
+	_, err3 := repo.db.Query(decrementSomeDishesQuery)
+	if err3 != nil {
+		fmt.Println("got an error while trying to decrement some dishes:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database")
+		return fcerr
 	}
 
 	returnedDish, err := repo.GetDishByID(d.DishID)
@@ -837,7 +873,7 @@ func (repo *repository) GetStorageDishes(sID int) (*dish.Dishes, fcerr.FCErr) {
 		count++
 		var currentDish dish.Dish
 		fmt.Println("Inside the result set loop. currentDish:", currentDish)
-		err := rows.Scan(&currentDish.DishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
+		err := rows.Scan(&currentDish.DishID, &currentDish.PersonalDishID, &currentDish.UserID, &currentDish.StorageID, &currentDish.Title,
 			&currentDish.Description, &currentDish.CreatedDate, &currentDish.ExpireDate, &currentDish.Priority,
 			&currentDish.DishType, &currentDish.Portions, &currentDish.TempMatch)
 		if err != nil {

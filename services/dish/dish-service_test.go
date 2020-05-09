@@ -12,17 +12,18 @@ import (
 )
 
 var nD = &dishDomain.Dish{
-	DishID:      1,
-	UserID:      2,
-	StorageID:   3,
-	Title:       "Carrots",
-	Description: "Some carrots we got at the store",
-	CreatedDate: "2006-01-02T15:04:05",
-	ExpireDate:  "2020-10-13T08:00",
-	Priority:    "",
-	DishType:    "",
-	Portions:    -1,
-	TempMatch:   "9r842d3a351",
+	DishID:         1,
+	PersonalDishID: 1,
+	UserID:         2,
+	StorageID:      3,
+	Title:          "Carrots",
+	Description:    "Some carrots we got at the store",
+	CreatedDate:    "2006-01-02T15:04:05",
+	ExpireDate:     "2020-10-13T08:00",
+	Priority:       "",
+	DishType:       "",
+	Portions:       -1,
+	TempMatch:      "9r842d3a351",
 }
 
 func TestDishService_GetByID(t *testing.T) {
@@ -39,9 +40,9 @@ func TestDishService_GetByID(t *testing.T) {
 
 	dS := NewService(repo)
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "storage_id", "title", "description", "created_date",
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(nD.DishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
 	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, 1)).WillReturnRows(rows)
