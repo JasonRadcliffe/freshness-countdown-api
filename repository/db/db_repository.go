@@ -18,7 +18,7 @@ import (
 const GetDishesBase = `SELECT * FROM dish`
 
 //GetDishByIDBase can be used with fmt.Sprintf() to get the Query for GetDishByID().
-const GetDishByIDBase = `SELECT * FROM dish WHERE id = %d`
+const GetDishByIDBase = `SELECT * FROM dish WHERE user_id = %d AND personal_id = %d`
 
 //GetDishByTempMatchBase can be used with fmt.Sprintf() to get the Query for GetDishByTempMatch().
 const GetDishByTempMatchBase = `SELECT * FROM dish WHERE temp_match = "%s"`
@@ -92,7 +92,7 @@ const GetStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
 	GetDishes() (*dish.Dishes, fcerr.FCErr)
-	GetDishByID(int) (*dish.Dish, fcerr.FCErr)
+	GetDishByID(int, int) (*dish.Dish, fcerr.FCErr)
 	GetDishByTempMatch(string) (*dish.Dish, fcerr.FCErr)
 	CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
 	UpdateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
@@ -192,9 +192,9 @@ func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
 }
 
 //GetDishByID takes an int and queries the mysql database for a dish with this id.
-func (repo *repository) GetDishByID(id int) (*dish.Dish, fcerr.FCErr) {
+func (repo *repository) GetDishByID(userID int, pID int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
-	getDishByIDQuery := fmt.Sprintf(GetDishByIDBase, id)
+	getDishByIDQuery := fmt.Sprintf(GetDishByIDBase, userID, pID)
 	fmt.Println("about to run this query in GetDishByID:", getDishByIDQuery)
 
 	rows, err := repo.db.Query(getDishByIDQuery)
@@ -324,7 +324,7 @@ func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 		return nil, fcerr
 	}
 
-	checkDish, err := repo.GetDishByID(d.DishID)
+	checkDish, err := repo.GetDishByID(d.UserID, d.PersonalDishID)
 	if err != nil {
 		fmt.Println("got an error on the check query:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the dish that was created." +
@@ -376,7 +376,7 @@ func (repo *repository) DeleteDish(d dish.Dish) fcerr.FCErr {
 		return fcerr
 	}
 
-	returnedDish, err := repo.GetDishByID(d.DishID)
+	returnedDish, err := repo.GetDishByID(d.UserID, d.PersonalDishID)
 	if err == nil {
 		fmt.Println("Expected an error here, but didn't get one!! Dish Title:" + returnedDish.Title)
 		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database, could not verify it was deleted.")

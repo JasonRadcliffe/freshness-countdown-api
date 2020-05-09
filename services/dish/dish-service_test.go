@@ -125,9 +125,9 @@ func TestDishService_GetByID(t *testing.T) {
 		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
 
-	resultingDish, err := dS.GetByID("alexaid1234", "superaccesstoken", 1)
+	resultingDish, err := dS.GetByID(nU, nD.PersonalDishID)
 	fmt.Println("got this dish from the test:", resultingDish)
 
 	assert.Equal(t, nD.Title, resultingDish.Title)

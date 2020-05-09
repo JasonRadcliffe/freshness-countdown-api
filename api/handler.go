@@ -30,7 +30,6 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	GetExpiredDishes(*gin.Context)
 	UpdateDish(*gin.Context)
 	DeleteDish(*gin.Context)
 
@@ -141,9 +140,10 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		return
 	}
 
+	dishIDParam := c.Param("dish_id")
+
 	if aR.RequestType == "GET" {
 
-		dishIDParam := c.Param("dish_id")
 		if dishIDParam == "expired" {
 			fmt.Println("got the post request for GetExpired!")
 			marshaledDishList, err := getExpiredDishes(requestUser, h.dishService)
@@ -164,7 +164,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 				return
 			}
 
-			marshaledDish, err := getDishByID(dishID, aR, h.dishService)
+			marshaledDish, err := getDishByID(dishID, requestUser, h.dishService)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
@@ -200,6 +200,16 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			"message": []byte("Your dish has been added to the database."),
 		})
 		return
+
+	} else if aR.RequestType == "PATCH" {
+		dishID, err := strconv.Atoi(dishIDParam)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		fmt.Println("got the dish update method for dish number:", dishID)
+
+	} else if aR.RequestType == "DELETE" {
 
 	}
 
@@ -340,35 +350,6 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 
 //^^^^^^^Dish Section ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-/*
-func (h *handler) GetDishesWithAccessToken(c *gin.Context) {
-
-	fmt.Println("\n\n\nRunning the Alexa Test function:")
-	accessToken := c.Request.FormValue("access_token_jason")
-	fmt.Println("We got this access token from Alexa:", accessToken)
-
-	response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + accessToken)
-	if err != nil {
-		fmt.Println("error when getting the userinfo with the access token")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	defer response.Body.Close()
-
-	contents, error := ioutil.ReadAll(response.Body)
-	if error != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	json.Unmarshal(contents, &currentUser)
-	fmt.Println("Here is the current User we got with the access token: ", currentUser)
-	c.JSON(200, gin.H{
-		"message": "The emial address we got from the alexa service is: " + currentUser.Email,
-	})
-}
-*/
-
 //getDishes gets all the dishes the active user has
 func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
@@ -394,15 +375,15 @@ func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcer
 	return marshaledDishes, nil
 }
 
-//getDishes gets all the dishes the active user has
-func getDishByID(dishID int, aR apiRequest, service dish.Service) ([]byte, fcerr.FCErr) {
+//getDishByID gets a particular dish the requesting user has
+func getDishByID(pID int, requestingUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dish *dishDomain.Dish
 	var err fcerr.FCErr
 	fmt.Println("running non-gin getDishByID func")
 
 	//accessToken := aR.AccessToken
 
-	dish, err = service.GetByID(aR.AlexaUserID, aR.AccessToken, dishID)
+	dish, err = service.GetByID(requestingUser, pID)
 
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
@@ -417,51 +398,6 @@ func getDishByID(dishID int, aR apiRequest, service dish.Service) ([]byte, fcerr
 		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
 	}
 	return marshaledDish, nil
-}
-
-/*
-
-func (h *handler) GetDishHandler(c *gin.Context) {
-	dishID := c.Param("dish_id")
-	if dishID == "expired" {
-		fmt.Println("NEW____-----GOT THE EXPIRED ROUTE!!! ...... in the NEW handler!")
-		h.GetExpiredDishes(c)
-	} else {
-		fmt.Println("NEW____-----GOT THE NORMAL GETDISHES ROUTE!!!...... in the NEW handler")
-		h.GetDishByID(c)
-	}
-}
-*/
-
-/*
-//GetDishByID gets a specific dish if it belongs to the current user
-func (h *handler) GetDishByID(c *gin.Context) {
-	dishIDstr := c.Param("dish_id")
-	fmt.Println("NEW____-----Running the GetDishByID function from the new handler for this dish:", dishIDstr)
-	dishID, err := strconv.Atoi(dishIDstr)
-	if err != nil {
-		fmt.Println("got an error when parsing the dishID url param")
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	resultingDish, err := h.dishService.GetByID(dishID)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	fmt.Println("about to return the json object with the message:", resultingDish)
-	c.JSON(200, gin.H{
-		"message": resultingDish,
-	})
-}
-*/
-
-//GetExpiredDishes gets all the dishes for the current user that are expired
-func (h *handler) GetExpiredDishes(c *gin.Context) {
-	fmt.Println("NEW____-----Running the GetExpiredDishes function from the new handler")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetExpiredDishes function from the new hanlder",
-	})
 }
 
 func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {

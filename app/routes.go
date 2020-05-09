@@ -10,11 +10,6 @@ func mapRoutes() {
 	//router.GET("/dishes/:dish_id", apiHandler.GetDishHandler)
 
 	router.POST("/dishes", apiHandler.HandleDishesRequest)
-	router.POST("/dishes/:dish_id", apiHandler.HandleDishesRequest)
-
-	//router.POST("/dishes", apiHandler.CreateDish)
-	router.PATCH("/dishes/:dish_id", apiHandler.UpdateDish)
-	router.DELETE("/dishes/:dish_id", apiHandler.DeleteDish)
 
 	router.GET("/users", apiHandler.GetUsers)
 	router.GET("/users/:user_id", apiHandler.GetUserHandler)

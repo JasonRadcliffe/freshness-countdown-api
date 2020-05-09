@@ -14,6 +14,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var nD = &dish.Dish{
+	DishID:         360,
+	PersonalDishID: 2,
+	UserID:         2,
+	StorageID:      3,
+	Title:          "Carrots",
+	Description:    "Some carrots we got at the store",
+	CreatedDate:    "2006-01-02T15:04:05",
+	ExpireDate:     "2020-10-13T08:00",
+	Priority:       "",
+	DishType:       "",
+	Portions:       -1,
+	TempMatch:      "9r842d3a351",
+}
+
+var nDex = &dish.Dish{
+	DishID:         4,
+	PersonalDishID: 1,
+	UserID:         2,
+	StorageID:      3,
+	Title:          "Old Carrots",
+	Description:    "Some carrots we got at the store last year",
+	CreatedDate:    "2006-01-02T15:04:05",
+	ExpireDate:     "2019-10-13T08:00",
+	Priority:       "",
+	DishType:       "",
+	Portions:       -1,
+	TempMatch:      "9r842d3a351",
+}
+
 func TestDb_NewRepository_CantConnect(t *testing.T) {
 	_, err := NewRepository("")
 
@@ -128,18 +158,16 @@ func TestDb_GetDishByID(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(1, 1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
 
-	resultingDish, err := repo.GetDishByID(1)
+	resultingDish, err := repo.GetDishByID(nD.UserID, nD.PersonalDishID)
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, 1, resultingDish.DishID)
-	assert.Equal(t, "Carrots", resultingDish.Title)
-	assert.Equal(t, 1, resultingDish.UserID)
-	assert.Equal(t, 3, resultingDish.StorageID)
+	assert.Equal(t, nD, resultingDish)
 }
 
 func TestDb_GetDishByID_QueryError(t *testing.T) {
@@ -151,9 +179,9 @@ func TestDb_GetDishByID_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnError(errors.New("database error"))
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnError(errors.New("database error"))
 
-	resultingDish, err := repo.GetDishByID(1)
+	resultingDish, err := repo.GetDishByID(nD.UserID, nD.PersonalDishID)
 
 	assert.Nil(t, resultingDish)
 	assert.NotNil(t, err)
@@ -174,9 +202,9 @@ func TestDb_GetDishByID_NotFound(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"})
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
 
-	resultingDish, err := repo.GetDishByID(1)
+	resultingDish, err := repo.GetDishByID(nD.UserID, nD.PersonalDishID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDish)
@@ -196,11 +224,12 @@ func TestDb_GetDishByID_RowScanError(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(1, 1, "SHOULD BE INT", 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, "SHOULDBEINT", nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
 
-	resultingDish, err := repo.GetDishByID(1)
+	resultingDish, err := repo.GetDishByID(nD.UserID, nD.PersonalDishID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDish)
@@ -220,12 +249,14 @@ func TestDb_GetDishByID_FoundMultiple(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(1, 1, 2, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "").
-		AddRow(1, 2, 2, 3, "Carrots", "Some carrots we got at the store a second time", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch).
+		AddRow(nD.DishID+1, nD.PersonalDishID+1, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
 
-	resultingDish, err := repo.GetDishByID(1)
+	resultingDish, err := repo.GetDishByID(nD.UserID, nD.PersonalDishID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDish)
@@ -486,7 +517,7 @@ func TestDb_UpdateDish(t *testing.T) {
 		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.DishID)).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.DishID)).WillReturnRows(getRows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(getRows)
 
 	returnedDish, err := repo.UpdateDish(*nD)
 
@@ -573,7 +604,7 @@ func TestDb_UpdateDish_CheckError(t *testing.T) {
 		nD.Description, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.DishID)).
 		WillReturnRows(createRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.DishID)).WillReturnError(errors.New("database error"))
+	mock.ExpectQuery(fmt.Sprintf(GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnError(errors.New("database error"))
 
 	returnedDish, err := repo.UpdateDish(*nD)
 
