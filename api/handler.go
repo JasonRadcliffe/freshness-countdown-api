@@ -229,6 +229,7 @@ func (h *handler) Oauthlogin(c *gin.Context) {
 	fmt.Println("Running the Oauthlogin function")
 	oauthstate := numGenerator()
 	url := getOAuthURL(h.oauthConfig, oauthstate)
+	fmt.Println("***********New interface function URL:\n", url)
 	cookie := &http.Cookie{
 		Name:   "oauthstate",
 		Value:  oauthstate,
@@ -275,6 +276,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("***********New interface function to get token:\n", token)
 
 	response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
