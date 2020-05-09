@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
+
+	"golang.org/x/oauth2"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/services/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
@@ -32,6 +35,16 @@ var rUser = &userDomain.User{
 	TempMatch:    "1v842d234523a",
 }
 
+//Exchange is the mock method to get the token for oauth
+func (m *mockOAuthConfig) AuthCodeURL(state string, options ...oauth2.AuthCodeOption) string {
+	return ""
+}
+
+//Exchange is the mock method to get the token for oauth
+func (m *mockOAuthConfig) Exchange(c context.Context, code string, options ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	return nil, nil
+}
+
 func TestAPIHandler_getExpiredDishes(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if testerr != nil {
@@ -44,9 +57,14 @@ func TestAPIHandler_getExpiredDishes(t *testing.T) {
 		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
 	}
 
+	oC := &mockOAuthConfig{}
+
 	dS := dish.NewService(repo)
 	uS := user.NewService(repo)
 	sS := storage.NewService(repo)
+
+	mHandler := NewHandler(dS, sS, uS, oC)
+	fmt.Println("testing:", mHandler)
 
 	//rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 	//	"expire_date", "priority", "dish_type", "portions", "temp_match"}).
@@ -55,7 +73,7 @@ func TestAPIHandler_getExpiredDishes(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, 1)).WillReturnError(errors.New(""))
 
-	resultingDish, err := dS.GetByID("alexaid1234", "superaccesstoken", 1)
+	resultingDish, err := getExpiredDishes(rUser, dS)
 	fmt.Println("got this dish from the test:", resultingDish)
 
 	assert.Equal(t, "", "")

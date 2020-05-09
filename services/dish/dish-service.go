@@ -48,6 +48,33 @@ func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCEr
 
 }
 
+//GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
+func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
+	var cDish dish.Dish
+	var expiredDishes dish.Dishes
+	resultDishes, err := s.repository.GetDishes()
+
+	if err != nil {
+		return nil, fcerr.NewInternalServerError("Could not retrieve the dishes")
+	}
+
+	for _, d := range *resultDishes {
+		fmt.Println("In the for each loop of the GetExpired!!")
+		check, err := cDish.IsExpired()
+		if err != nil {
+			continue
+		}
+		if check == true {
+			fmt.Println("Got a true - an expired dish!", d.Title, d.ExpireDate)
+			expiredDishes = append(expiredDishes, d)
+		}
+
+	}
+
+	return &expiredDishes, nil
+
+}
+
 func (s *service) Create(alexaid string, accessToken string, dishMap map[string]string) (*dish.Dish, fcerr.FCErr) {
 	newStorageID, err := strconv.Atoi(dishMap["storageID"])
 	if err != nil {
