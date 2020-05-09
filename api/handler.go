@@ -145,8 +145,16 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 
 		dishIDParam := c.Param("dish_id")
 		if dishIDParam == "expired" {
-			fmt.Println("NEW____-----GOT THE EXPIRED ROUTE!!! ...... in the NEW handler!")
-			h.GetExpiredDishes(c)
+			fmt.Println("got the post request for GetExpired!")
+			marshaledDishList, err := getExpiredDishes(requestUser, h.dishService)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"message": marshaledDishList,
+			})
 			return
 		} else if dishIDParam != "" {
 			fmt.Println("NEW____-----GOT THE NORMAL GETDISHES ROUTE!!!...... in the NEW handler")
