@@ -15,7 +15,7 @@ import (
 )
 
 //GetDishesBase is the Query for GetDishes().
-const GetDishesBase = `SELECT * FROM dish`
+const GetDishesBase = `SELECT * FROM dish WHERE user_id = %d`
 
 //GetDishByIDBase can be used with fmt.Sprintf() to get the Query for GetDishByID().
 const GetDishByIDBase = `SELECT * FROM dish WHERE user_id = %d AND personal_id = %d`
@@ -91,12 +91,13 @@ const GetStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
-	GetDishes() (*dish.Dishes, fcerr.FCErr)
+	GetDishes(int) (*dish.Dishes, fcerr.FCErr)
 	GetDishByID(int, int) (*dish.Dish, fcerr.FCErr)
 	GetDishByTempMatch(string) (*dish.Dish, fcerr.FCErr)
+	GetPersonalDishCount(user.User) (int, fcerr.FCErr)
 	CreateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
 	UpdateDish(dish.Dish) (*dish.Dish, fcerr.FCErr)
-	DeleteDish(dish.Dish) fcerr.FCErr
+	DeleteDish(user.User, dish.Dish) fcerr.FCErr
 
 	GetUsers() (*user.Users, fcerr.FCErr)
 	GetUserByID(int) (*user.User, fcerr.FCErr)
@@ -150,10 +151,10 @@ func NewRepositoryWithDB(db *sql.DB) (Repository, fcerr.FCErr) {
 }
 
 //GetDishes returns the list of all dishes in the database
-func (repo *repository) GetDishes() (*dish.Dishes, fcerr.FCErr) {
+func (repo *repository) GetDishes(userID int) (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
-	getDishesQuery := fmt.Sprintf(GetDishesBase)
+	getDishesQuery := fmt.Sprintf(GetDishesBase, userID)
 	rows, err := repo.db.Query(getDishesQuery)
 	fmt.Println("now after doing the Query:", getDishesQuery)
 	if err != nil {
@@ -335,18 +336,28 @@ func (repo *repository) UpdateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	return checkDish, nil
 }
 
-//DeleteDish takes a dish object and tries to delete the existing dish from the database
-func (repo *repository) DeleteDish(d dish.Dish) fcerr.FCErr {
-	//TODO - fix hardcoding of user id 1 after we have the requesting user here
-	getPersonalDishCountQuery := fmt.Sprintf(GetPersonalDishCountBase, 1)
+//GetPersonalDishCount gets the number of dishes the given user has in the database
+func (repo *repository) GetPersonalDishCount(u user.User) (int, fcerr.FCErr) {
+	getPersonalDishCountQuery := fmt.Sprintf(GetPersonalDishCountBase, u.UserID)
 	personalDishCountRow := repo.db.QueryRow(getPersonalDishCountQuery)
 	var personalDishCount int
 	err := personalDishCountRow.Scan(&personalDishCount)
 	if err != nil {
 		fmt.Println("got an error on the get personal count process:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database - before delete command")
-		return fcerr
+		return 0, fcerr
 	}
+	return personalDishCount, nil
+
+}
+
+//DeleteDish takes a dish object and tries to delete the existing dish from the database
+func (repo *repository) DeleteDish(u user.User, d dish.Dish) fcerr.FCErr {
+	personalDishCount, err := repo.GetPersonalDishCount(u)
+	if err != nil {
+		return fcerr.NewInternalServerError("Error when Deleting the dish")
+	}
+
 	pDSstr := ""
 	for i := d.PersonalDishID + 1; i <= personalDishCount; i++ {
 		if i == personalDishCount {

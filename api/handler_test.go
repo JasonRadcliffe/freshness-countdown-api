@@ -104,7 +104,7 @@ func TestAPIHandler_getExpiredDishes(t *testing.T) {
 		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase, rUser.UserID)).WillReturnRows(rows)
 
 	resultingDishesMarshaled, err := getExpiredDishes(rUser, dS)
 	var resultingDishes dishDomain.Dishes

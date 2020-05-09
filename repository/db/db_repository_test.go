@@ -44,6 +44,20 @@ var nDex = &dish.Dish{
 	TempMatch:      "9r842d3a351",
 }
 
+var nU = &user.User{
+	UserID:       2,
+	Email:        "nothing@gmail.com",
+	FirstName:    "Bob",
+	LastName:     "Nothing",
+	FullName:     "Bob Nothing",
+	CreatedDate:  "2016-01-02T15:04:05",
+	AccessToken:  "ya33.a0Ae4lvC1iHeKSDRdQ542I-lEy8LHUU7-9r-k",
+	RefreshToken: "105i7nDY0JDTJmCgYIAQDKJSNwF-L9IrRgJ4-fM",
+	AlexaUserID:  "qwertyuiop",
+	Admin:        false,
+	TempMatch:    "1v842d234523a",
+}
+
 func TestDb_NewRepository_CantConnect(t *testing.T) {
 	_, err := NewRepository("")
 
@@ -64,24 +78,21 @@ func TestDb_GetDishes(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(1, 1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "").
-		AddRow(1, 2, 2, 3, "Peas", "Some peas we got at the store", "2007-01-02T15:04:05", "2021-10-13T08:00", 1, "", -1, "")
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch).
+		AddRow(nD.DishID+200, nD.PersonalDishID+1, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery("SELECT * FROM dish").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishesBase, nU.UserID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetDishes(nU.UserID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(*resultingDishes))
 
 	resultingDish1 := (*resultingDishes)[0]
-	resultingDish2 := (*resultingDishes)[1]
 
-	assert.Equal(t, "Carrots", resultingDish1.Title)
-	assert.Equal(t, "Peas", resultingDish2.Title)
-
-	assert.Equal(t, 1, resultingDish1.UserID)
-	assert.Equal(t, 2, resultingDish2.UserID)
+	assert.Equal(t, nD, &resultingDish1)
 }
 
 func TestDb_GetDishes_NotFound(t *testing.T) {
@@ -96,9 +107,9 @@ func TestDb_GetDishes_NotFound(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"})
 
-	mock.ExpectQuery("SELECT * FROM dish").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishesBase, nU.UserID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetDishes(nU.UserID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDishes)
@@ -115,8 +126,8 @@ func TestDb_GetDishes_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	mock.ExpectQuery("SELECT * FROM dishs").WillReturnError(errors.New("database error"))
-	resultingDishes, err := repo.GetDishes()
+	mock.ExpectQuery(fmt.Sprintf(GetDishesBase, nU.UserID)).WillReturnError(errors.New("database error"))
+	resultingDishes, err := repo.GetDishes(nU.UserID)
 
 	assert.Nil(t, resultingDishes)
 	assert.NotNil(t, err)
@@ -137,9 +148,9 @@ func TestDb_GetDishes_RowScanError(t *testing.T) {
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
 		AddRow("SHOULDBEINT", 1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
 
-	mock.ExpectQuery("SELECT * FROM dish").WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetDishesBase, nU.UserID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetDishes()
+	resultingDishes, err := repo.GetDishes(nU.UserID)
 
 	assert.Nil(t, resultingDishes)
 	assert.NotNil(t, err)
@@ -626,21 +637,6 @@ func TestDb_DeleteDish(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nD := &dish.Dish{
-		DishID:         2,
-		PersonalDishID: 2,
-		UserID:         1,
-		StorageID:      3,
-		Title:          "Carrots",
-		Description:    "Some carrots we got at the store",
-		CreatedDate:    "2006-01-02T15:04:05",
-		ExpireDate:     "2020-10-13T08:00",
-		Priority:       "",
-		DishType:       "",
-		Portions:       -1,
-		TempMatch:      "9r842d3a351",
-	}
-
 	countRow := sqlmock.NewRows([]string{"COUNT(*)"}).
 		AddRow(3)
 
@@ -654,7 +650,7 @@ func TestDb_DeleteDish(t *testing.T) {
 
 	mock.ExpectQuery(`UPDATE dish SET personal_id = personal_id - 1 WHERE user_id = 1 AND personal_id IN(3)`).WillReturnRows(updateRows)
 
-	err := repo.DeleteDish(*nD)
+	err := repo.DeleteDish(*nU, *nD)
 
 	assert.Nil(t, err)
 }
@@ -668,24 +664,9 @@ func TestDb_DeleteDish_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nD := &dish.Dish{
-		DishID:         2,
-		PersonalDishID: 1,
-		UserID:         2,
-		StorageID:      3,
-		Title:          "Carrots",
-		Description:    "Some carrots we got at the store",
-		CreatedDate:    "2006-01-02T15:04:05",
-		ExpireDate:     "2020-10-13T08:00",
-		Priority:       "",
-		DishType:       "",
-		Portions:       -1,
-		TempMatch:      "9r842d3a351",
-	}
-
 	mock.ExpectQuery(fmt.Sprintf(GetPersonalDishCountBase, nD.UserID)).WillReturnError(errors.New("database error"))
 
-	err := repo.DeleteDish(*nD)
+	err := repo.DeleteDish(*nU, *nD)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())

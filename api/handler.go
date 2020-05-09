@@ -66,17 +66,17 @@ type handler struct {
 }
 
 type apiRequest struct {
-	RequestType string `json:"fcapiRequestType"`
-	AccessToken string `json:"accessToken"`
-	AlexaUserID string `json:"alexaUserID"`
-	StorageID   string `json:"storageID"`
-	//DishID       int    `json:"dishID"`
-	Title string `json:"title"`
-	//Description  string `json:"description"`
+	RequestType  string `json:"fcapiRequestType"`
+	AccessToken  string `json:"accessToken"`
+	AlexaUserID  string `json:"alexaUserID"`
+	StorageID    string `json:"storageID"`
+	DishID       int    `json:"dishID"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
 	ExpireWindow string `json:"expireWindow"`
-	//Priority     string `json:"priority"`
-	//DishType     string `json:"dishType"`
-	//Portions     int    `json:"portions"`
+	Priority     string `json:"priority"`
+	DishType     string `json:"dishType"`
+	Portions     int    `json:"portions"`
 }
 
 type apiResponse struct {
@@ -190,7 +190,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 
 	} else if aR.RequestType == "POST" {
 		fmt.Println("doing the new createDishes() within the new dish request handler")
-		err := createDish(aR, h.dishService)
+		err := createDish(requestUser, aR, h.dishService)
 		if err != nil {
 			c.AbortWithStatus(err.Status())
 			return
@@ -426,24 +426,26 @@ func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fce
 }
 
 //CreateDish adds a dish to the list
-func createDish(aR apiRequest, service dish.Service) fcerr.FCErr {
+func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
 
 	fmt.Println("running the createDish() non-handler function")
 
-	//1. Check if Alexa User is in DB
+	storageID, err := strconv.Atoi(aR.StorageID)
+	if err != nil {
+		return fcerr.NewBadRequestError("Error when creating the dish.")
+	}
 
-	//2. If so, run function with passing user id
+	newDish := &dishDomain.Dish{
+		StorageID:   storageID,
+		Title:       aR.Title,
+		Description: aR.Description,
+		Priority:    aR.Priority,
+		DishType:    aR.DishType,
+		Portions:    aR.Portions,
+	}
+	expireWindow := aR.ExpireWindow
 
-	//3. If not, check if you can get a user in the db with the access token, and then run the function with the user id
-
-	//4. if still not, return not authorized.
-
-	dishMap := make(map[string]string)
-	dishMap["storageID"] = aR.StorageID
-	dishMap["title"] = aR.Title
-	dishMap["expireWindow"] = aR.ExpireWindow
-
-	resultingDish, err := service.Create(aR.AlexaUserID, aR.AccessToken, dishMap)
+	resultingDish, err := service.Create(requestingUser, newDish, expireWindow)
 
 	if err != nil || resultingDish.DishID == 0 {
 		return fcerr.NewInternalServerError("seems to have brokne")

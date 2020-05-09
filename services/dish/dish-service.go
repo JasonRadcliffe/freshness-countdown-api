@@ -2,7 +2,7 @@ package dish
 
 import (
 	"fmt"
-	"strconv"
+	"time"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 	userDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
@@ -15,7 +15,7 @@ type Service interface {
 	GetByID(*userDomain.User, int) (*dish.Dish, fcerr.FCErr)
 	GetExpired(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
 	GetAll(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
-	Create(string, string, map[string]string) (*dish.Dish, fcerr.FCErr)
+	Create(*userDomain.User, *dish.Dish, string) (*dish.Dish, fcerr.FCErr)
 }
 
 type service struct {
@@ -40,7 +40,7 @@ func (s *service) GetByID(requestingUser *userDomain.User, pID int) (*dish.Dish,
 
 //GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
 func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
-	resultDishes, err := s.repository.GetDishes()
+	resultDishes, err := s.repository.GetDishes(requestUser.UserID)
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("dish service could not do GetAll()")
 		return nil, fcerr
@@ -53,7 +53,7 @@ func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCEr
 func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
 	//var cDish dish.Dish
 	var expiredDishes dish.Dishes
-	resultDishes, err := s.repository.GetDishes()
+	resultDishes, err := s.repository.GetDishes(requestUser.UserID)
 
 	if err != nil {
 		return nil, fcerr.NewInternalServerError("Could not retrieve the dishes")
@@ -76,18 +76,24 @@ func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.
 
 }
 
-func (s *service) Create(alexaid string, accessToken string, dishMap map[string]string) (*dish.Dish, fcerr.FCErr) {
-	newStorageID, err := strconv.Atoi(dishMap["storageID"])
+func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) (*dish.Dish, fcerr.FCErr) {
+
+	//TODO: write conversions between Alexa duration and time.Now
+	expireDate := "2020-10-13T08:00"
+	datePattern := "2006-01-02T15:04:05"
+	timeNow := time.Now().In(time.UTC)
+	createdDate := timeNow.Format(datePattern)
+
+	personalCount, err := s.repository.GetPersonalDishCount(*requestingUser)
 	if err != nil {
-		return nil, fcerr.NewBadRequestError("storage id was not a number")
+		return nil, fcerr.NewInternalServerError("Error when creating the dish.")
 	}
 
-	fmt.Println("in the dish service Create(). Got this for expire window:\n" + dishMap["expireWindow"] + "\n")
+	newDish.UserID = requestingUser.UserID
+	newDish.PersonalDishID = personalCount + 1
+	newDish.CreatedDate = createdDate
+	newDish.ExpireDate = expireDate
 
-	newDish := &dish.Dish{
-		StorageID: newStorageID,
-		Title:     dishMap["title"],
-	}
 	fmt.Println("\nWe are doing the dish service Create() with this dish:\n", newDish)
 	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string
 	resultDish, err := s.repository.CreateDish(*newDish)

@@ -62,7 +62,7 @@ func TestDishService_GetAll(t *testing.T) {
 		AddRow(nD.DishID+1, nD.PersonalDishID+1, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase, nU.UserID)).WillReturnRows(rows)
 
 	resultingDishes, err := dS.GetAll(nU)
 	dish := (*resultingDishes)[0]
@@ -95,7 +95,7 @@ func TestDishService_GetExpired(t *testing.T) {
 		AddRow(nD.DishID+1, nD.PersonalDishID+1, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			"2019-10-13T08:00", nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase, nU.UserID)).WillReturnRows(rows)
 
 	resultingDishes, err := dS.GetExpired(nU)
 	//dish := (*resultingDishes)[0]
