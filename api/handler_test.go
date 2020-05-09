@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type mockOAuthConfig struct{}
+
 var rUser = &userDomain.User{
 	UserID:       2,
 	Email:        "nothing@gmail.com",
