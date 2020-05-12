@@ -3,6 +3,7 @@ package storage
 //Storage type is the struct in the Domain that contains all the fields for what a Storage Unit is.
 type Storage struct {
 	StorageID   int    `json:"StorageID"`
+	PersonalID  int    `json:"PersonalID"`
 	UserID      int    `json:"UserID"`
 	Title       string `json:"Title"`
 	Description string `json:"Description"`

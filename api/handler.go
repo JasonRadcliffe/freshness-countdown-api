@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	dishDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
+	storageDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/storage"
 	userDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/services/storage"
@@ -30,13 +31,14 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	GetStorageDishes(*gin.Context)
-
-	GetStorageByID(*gin.Context)
-	GetStorageUnits(*gin.Context)
-	CreateStorageUnit(*gin.Context)
-	UpdateStorageUnit(*gin.Context)
-	DeleteStorageUnit(*gin.Context)
+	/*
+		GetStorageDishes(*gin.Context)
+		GetStorageByID(*gin.Context)
+		GetStorageUnits(*gin.Context)
+		CreateStorageUnit(*gin.Context)
+		UpdateStorageUnit(*gin.Context)
+		DeleteStorageUnit(*gin.Context)
+	*/
 
 	GetUsers(*gin.Context)
 	GetUserHandler(*gin.Context)
@@ -46,6 +48,7 @@ type Handler interface {
 	DeleteUser(*gin.Context)
 
 	HandleDishesRequest(*gin.Context)
+	HandleStorageRequest(*gin.Context)
 }
 
 type oauthConfig interface {
@@ -139,8 +142,9 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 
 	dishIDParam := c.Param("dish_id")
 
-	if aR.RequestType == "GET" {
+	switch aR.RequestType {
 
+	case "GET":
 		if dishIDParam == "expired" {
 			fmt.Println("got the post request for GetExpired!")
 			marshaledDishList, err := getExpiredDishes(requestUser, h.dishService)
@@ -185,7 +189,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			return
 		}
 
-	} else if aR.RequestType == "POST" {
+	case "POST":
 		fmt.Println("doing the new createDishes() within the new dish request handler")
 		err := createDish(requestUser, aR, h.dishService)
 		if err != nil {
@@ -198,7 +202,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		})
 		return
 
-	} else if aR.RequestType == "PATCH" {
+	case "PATCH":
 		dishID, err := strconv.Atoi(dishIDParam)
 		if err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)
@@ -211,8 +215,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-
-	} else if aR.RequestType == "DELETE" {
+	case "DELETE":
 		dishID, err := strconv.Atoi(dishIDParam)
 		if err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)
@@ -226,9 +229,112 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			return
 		}
 
+	default:
+		c.AbortWithStatus(http.StatusNotImplemented)
+
+	}
+}
+
+func (h *handler) HandleStorageRequest(c *gin.Context) {
+	var aR apiRequest
+
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 
-	c.AbortWithStatus(http.StatusNotImplemented)
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	storageIDParam := c.Param("storage_id")
+
+	switch aR.RequestType {
+
+	case "GET":
+		if storageIDParam != "" {
+			fmt.Println("NEW____-----GOT THE NORMAL GETStorage ROUTE!!!...... in the NEW handler")
+			storageID, err := strconv.Atoi(storageIDParam)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			marshaledStorage, err := getStorageByID(storageID, requestUser, h.storageService)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"message": marshaledStorage,
+			})
+			return
+		} else {
+			fmt.Println("got the getStorage route!!!")
+			marshaledStorageList, err := getStorage(requestUser, h.storageService)
+			if err != nil {
+				c.AbortWithStatus(http.StatusInternalServerError)
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"message": marshaledStorageList,
+			})
+			return
+		}
+
+	case "POST":
+		fmt.Println("doing the new createStorage() within the new storage request handler")
+		err := createStorage(requestUser, aR, h.storageService)
+		if err != nil {
+			c.AbortWithStatus(err.Status())
+			return
+		}
+		fmt.Println("Successfully added the storage to the database!")
+		c.JSON(200, gin.H{
+			"message": []byte("Your storage unit has been added to the database."),
+		})
+		return
+
+	case "PATCH":
+		storageID, err := strconv.Atoi(storageIDParam)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		fmt.Println("got the storage update method for storage number:", storageID)
+		err2 := updateStorage(requestUser, aR, h.storageService)
+		if err2 != nil {
+			fmt.Println("Got an error when doing the update storage route")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+	case "DELETE":
+		storageID, err := strconv.Atoi(storageIDParam)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		fmt.Println("got the storage delete method for storage number:", storageID)
+		err2 := deleteStorage(requestUser, storageID, h.storageService)
+		if err2 != nil {
+			fmt.Println("Got an error when doing the update storage route")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+	default:
+		c.AbortWithStatus(http.StatusNotImplemented)
+
+	}
+
 }
 
 //---------------------------------------------------------------------------------------------------------
@@ -506,57 +612,108 @@ func deleteDish(requestingUser *userDomain.User, dishID int, service dish.Servic
 	return nil
 }
 
-//GetStorageDishes gets all the dishes for the active user for a specific storage unit.
-func (h *handler) GetStorageDishes(c *gin.Context) {
-	storageID := c.Param("storage_id")
-	fmt.Println("NEW____-----Running the GetStorageDishes function for this storeage:", storageID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetStorageDishes function for this storeage:" + storageID,
-	})
-}
-
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 //######Storage Section#############################################################################################
-func (h *handler) GetStorageByID(c *gin.Context) {
-	fmt.Println("NEW____-----Running the GetStorageByID function from the new handler")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetStorageByID function from the new hanlder",
-	})
+
+//getStorage gets all the storage units the requesting user has
+func getStorage(requestUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
+	var storageList *storageDomain.Storages
+	var err fcerr.FCErr
+	fmt.Println("NEW____-----Running the GetDishes function")
+
+	//accessToken := aR.AccessToken
+
+	storageList, err = service.GetAll(requestUser)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorage route")
+		fmt.Println("could not handle the GetStorage route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got some storage units!!! The first of which is:", (*storageList)[0])
+
+	marshaledStorageList, merr := json.Marshal(storageList)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
+	}
+	return marshaledStorageList, nil
 }
 
-//GetStorageUnits gets all the storage units for the active user.
-func (h *handler) GetStorageUnits(c *gin.Context) {
-	fmt.Println("NEW____-----Running the GetStorageUnits function")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetStorageUnits function",
-	})
+//getStorageByID gets a particular storage unit the requesting user has
+func getStorageByID(pID int, requestingUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
+	var storage *storageDomain.Storage
+	var err fcerr.FCErr
+	fmt.Println("running non-gin getStorageByID func")
+
+	storage, err = service.GetByID(requestingUser, pID)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorageByID route")
+		fmt.Println("could not handle the GetStorageByID route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got a storage unit!!! It is:", storage.Title)
+
+	marshaledStorage, merr := json.Marshal(storage)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
+	}
+	return marshaledStorage, nil
 }
 
-//CreateStorageUnit adds a storage unit to the list
-func (h *handler) CreateStorageUnit(c *gin.Context) {
-	fmt.Println("NEW____-----Running the CreateStorageUnit function")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the CreateStorageUnit function",
-	})
+//CreateDish adds a dish to the list
+func createStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
+
+	fmt.Println("running the createStorage() non-handler function")
+
+	newStorage := &storageDomain.Storage{
+		Title:       aR.Title,
+		Description: aR.Description,
+	}
+
+	resultingStorage, err := service.Create(requestingUser, newStorage)
+
+	if err != nil || resultingStorage.StorageID == 0 {
+		return fcerr.NewInternalServerError("seems to have brokne")
+	}
+	return nil
+
 }
 
-//UpdateStorageUnit updates certain attributes of a specific storage unit
-func (h *handler) UpdateStorageUnit(c *gin.Context) {
-	storageID := c.Param("storage_id")
-	fmt.Println("NEW____-----Running the UpdateStorageUnit function for the storage:", storageID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the UpdateStorageUnit function for the storage:" + storageID,
-	})
+//updateStorage takes a requesting user, and an API request along with the storage service to update the storage unit to the values contained in the apirequest
+func updateStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
+	fmt.Println("running the updateStorage() non-handler function")
+
+	storageID, err := strconv.Atoi(aR.StorageID)
+	if err != nil {
+		return fcerr.NewBadRequestError("Error when creating the storage unit.")
+	}
+
+	newStorage := &storageDomain.Storage{
+		StorageID:   storageID,
+		Title:       aR.Title,
+		Description: aR.Description,
+	}
+
+	err2 := service.Update(requestingUser, newStorage)
+
+	if err2 != nil {
+		return fcerr.NewInternalServerError("Error when updating the storage unit")
+	}
+	return nil
 }
 
-//DeleteStorageUnit deletes a specific storage unit from the list
-func (h *handler) DeleteStorageUnit(c *gin.Context) {
-	storageID := c.Param("storage_id")
-	fmt.Println("NEW____-----Running the DeleteStorageUnit function for the storage:", storageID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the DeleteStorageUnit function for the storage:" + storageID,
-	})
+//deleteStorage takes a requesting user, and a storage ID along with the storage service to delete the storage unit with the personal id given
+func deleteStorage(requestingUser *userDomain.User, storageID int, service storage.Service) fcerr.FCErr {
+	fmt.Println("running the deleteStorage() non-handler function")
+	err := service.Delete(requestingUser, storageID)
+	if err != nil {
+		return fcerr.NewInternalServerError("Error when deleting the storage unit")
+	}
+	return nil
 }
 
 //##################################################################################################################

@@ -67,27 +67,27 @@ const UpdateUserBase = `UPDATE user SET email = "%s", first_name = "%s", last_na
 //DeleteUserBase can be used with fmt.Sprintf() to get the Query for DeleteUser().
 const DeleteUserBase = `DELETE FROM user WHERE id=%d`
 
-//GetStoragesByUserBase can be used with fmt.Sprintf() to get the Query for GetAllStorage().
-const GetStoragesByUserBase = `SELECT * FROM storage WHERE user_id=%d`
+//GetStoragesBase can be used with fmt.Sprintf() to get the Query for GetAllStorage().
+const GetStoragesBase = `SELECT * FROM storage WHERE user_id=%d`
 
 //GetStorageByIDBase can be used with fmt.Sprintf() to get the Query for GetStorageByID().
-const GetStorageByIDBase = `SELECT * FROM storage WHERE id=%d`
+const GetStorageByIDBase = `SELECT * FROM storage WHERE user_id = %d AND personal_id = %d`
 
 //GetStorageByTempMatchBase can be used with fmt.Sprintf() to get the Query for GetStorageByTempMatch().
 const GetStorageByTempMatchBase = `SELECT * FROM storage WHERE temp_match="%s"`
 
 //CreateStorageBase can be used with fmt.Sprintf() to get the Query for CreateStorage().
-const CreateStorageBase = `INSERT INTO storage (user_id, title, description, temp_match) ` +
-	`VALUES(%d, "%s", "%s", "%s")`
+const CreateStorageBase = `INSERT INTO storage (personal_id, user_id, title, description, temp_match) ` +
+	`VALUES(%d, %d, "%s", "%s", "%s")`
 
 //UpdateStorageBase can be used with fmt.Sprintf() to get the Query for UpdateStorage().
-const UpdateStorageBase = `UPDATE storage SET title = "%s", description = "%s", temp_match = "%s" WHERE id=%d`
+const UpdateStorageBase = `UPDATE storage SET personal_id = %d, title = "%s", description = "%s", temp_match = "%s" WHERE id=%d`
 
 //DeleteStorageBase can be used with fmt.Sprintf() to get the Query for DeleteStorage().
-const DeleteStorageBase = `DELETE FROM storage WHERE id=%d`
+const DeleteStorageBase = `DELETE FROM storage WHERE user_id = %d AND personal_id=%d`
 
 //GetStorageDishesBase can be used with fmt.Sprintf() to get the Query for GetStorageDishes().
-const GetStorageDishesBase = `SELECT * FROM dish WHERE storage_id = %d`
+const GetStorageDishesBase = `SELECT * FROM dish WHERE user_id = %d AND personal_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
@@ -108,14 +108,14 @@ type Repository interface {
 	UpdateUser(user.User) (*user.User, fcerr.FCErr)
 	DeleteUser(user.User) fcerr.FCErr
 
-	GetStoragesByUser(int) (*storage.Storages, fcerr.FCErr)
-	GetStorageByID(int) (*storage.Storage, fcerr.FCErr)
+	GetStorages(int) (*storage.Storages, fcerr.FCErr)
+	GetStorageByID(int, int) (*storage.Storage, fcerr.FCErr)
 	GetStorageByTempMatch(string) (*storage.Storage, fcerr.FCErr)
 	CreateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
 	UpdateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
-	DeleteStorage(storage.Storage) fcerr.FCErr
+	DeleteStorage(int, int) fcerr.FCErr
 
-	GetStorageDishes(int) (*dish.Dishes, fcerr.FCErr)
+	GetStorageDishes(int, int) (*dish.Dishes, fcerr.FCErr)
 }
 
 type repository struct {
@@ -192,7 +192,7 @@ func (repo *repository) GetDishes(userID int) (*dish.Dishes, fcerr.FCErr) {
 	return &resultDishes, nil
 }
 
-//GetDishByID takes an int and queries the mysql database for a dish with this id.
+//GetDishByID (userID int, pID int) queries the mysql database for a dish the requesting user has with the given personal id.
 func (repo *repository) GetDishByID(userID int, pID int) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
 	getDishByIDQuery := fmt.Sprintf(GetDishByIDBase, userID, pID)
@@ -672,12 +672,12 @@ func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
 }
 
 //GetStorage takes an int of a user id and returns the list of storage objects owned by that user.
-func (repo *repository) GetStoragesByUser(userID int) (*storage.Storages, fcerr.FCErr) {
+func (repo *repository) GetStorages(userID int) (*storage.Storages, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetStoragesByUser()")
 	var resultingStorages storage.Storages
-	getStoragesByUserQuery := fmt.Sprintf(GetStoragesByUserBase, userID)
-	rows, err := repo.db.Query(getStoragesByUserQuery)
-	fmt.Println("now after doing the Query:", getStoragesByUserQuery)
+	getStoragesQuery := fmt.Sprintf(GetStoragesBase, userID)
+	rows, err := repo.db.Query(getStoragesQuery)
+	fmt.Println("now after doing the Query:", getStoragesQuery)
 	if err != nil {
 		fmt.Println("got an error on the Query:", err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while retrieving storage units from the database")
@@ -712,8 +712,8 @@ func (repo *repository) GetStoragesByUser(userID int) (*storage.Storages, fcerr.
 }
 
 //GetStorageByID takes an int and queries the mysql database for a storage with this id.
-func (repo *repository) GetStorageByID(id int) (*storage.Storage, fcerr.FCErr) {
-	getStorageByIDQuery := fmt.Sprintf(GetStorageByIDBase, id)
+func (repo *repository) GetStorageByID(userID int, pID int) (*storage.Storage, fcerr.FCErr) {
+	getStorageByIDQuery := fmt.Sprintf(GetStorageByIDBase, userID, pID)
 	fmt.Println("About to run this Query on the database:\n", getStorageByIDQuery)
 	var resultingStorage storage.Storage
 
@@ -829,7 +829,7 @@ func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcer
 		return nil, fcerr
 	}
 
-	checkStorage, err := repo.GetStorageByID(s.StorageID)
+	checkStorage, err := repo.GetStorageByID(s.UserID, s.PersonalID)
 	if err != nil {
 		fmt.Println("got an error on the check query:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the storage unit that was created." +
@@ -841,8 +841,8 @@ func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcer
 }
 
 //DeleteStorage takes a storage object and tries to delete the existing storage from the database
-func (repo *repository) DeleteStorage(s storage.Storage) fcerr.FCErr {
-	deleteStorageQuery := fmt.Sprintf(DeleteStorageBase, s.StorageID)
+func (repo *repository) DeleteStorage(userID int, pID int) fcerr.FCErr {
+	deleteStorageQuery := fmt.Sprintf(DeleteStorageBase, userID, pID)
 
 	_, err := repo.db.Query(deleteStorageQuery)
 	if err != nil {
@@ -852,7 +852,7 @@ func (repo *repository) DeleteStorage(s storage.Storage) fcerr.FCErr {
 
 	}
 
-	returnedStorage, err := repo.GetStorageByID(s.StorageID)
+	returnedStorage, err := repo.GetStorageByID(userID, pID)
 	if err == nil {
 		fmt.Println("Expected an error here, but didn't get one!! Storage ID:", returnedStorage.StorageID)
 		fcerr := fcerr.NewInternalServerError("Error while deleting the storage unit from the database, could not verify it was deleted.")
@@ -863,10 +863,10 @@ func (repo *repository) DeleteStorage(s storage.Storage) fcerr.FCErr {
 }
 
 //GetStorageDishes takes a storage object and tries to update the existing storage in the database to match
-func (repo *repository) GetStorageDishes(sID int) (*dish.Dishes, fcerr.FCErr) {
+func (repo *repository) GetStorageDishes(userID int, storagePID int) (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetStorageDishes()")
 	var resultDishes dish.Dishes
-	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, sID)
+	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, userID, storagePID)
 	rows, err := repo.db.Query(getStorageDishesQuery)
 	fmt.Println("now after doing the Query:", getStorageDishesQuery)
 	if err != nil {
