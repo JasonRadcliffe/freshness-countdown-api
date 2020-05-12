@@ -13,8 +13,8 @@ import (
 type Service interface {
 	GetByID(*userDomain.User, int) (*storage.Storage, fcerr.FCErr)
 	GetAll(*userDomain.User) (*storage.Storages, fcerr.FCErr)
-	Create(*userDomain.User, *storage.Storage, string) (*storage.Storage, fcerr.FCErr)
-	Update(*userDomain.User, *storage.Storage, string) fcerr.FCErr
+	Create(*userDomain.User, *storage.Storage) (*storage.Storage, fcerr.FCErr)
+	Update(*userDomain.User, *storage.Storage) fcerr.FCErr
 	Delete(*userDomain.User, int) fcerr.FCErr
 }
 
@@ -40,7 +40,7 @@ func (s *service) GetByID(requestingUser *userDomain.User, pID int) (*storage.St
 
 //GetAll: (alexaid string, accessToken string) - gets all the storage units that the requesting user has
 func (s *service) GetAll(requestUser *userDomain.User) (*storage.Storages, fcerr.FCErr) {
-	resultStorageList, err := s.repository.GetStoragesByUser(requestUser.UserID)
+	resultStorageList, err := s.repository.GetStorages(requestUser.UserID)
 	if err != nil {
 		fcerr := fcerr.NewInternalServerError("storage service could not do GetAll()")
 		return nil, fcerr

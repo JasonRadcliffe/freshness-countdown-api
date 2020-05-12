@@ -58,6 +58,15 @@ var nU = &user.User{
 	TempMatch:    "1v842d234523a",
 }
 
+var nS = &storage.Storage{
+	StorageID:   5,
+	PersonalID:  1,
+	UserID:      2,
+	Title:       "Fridge",
+	Description: "The main fridge in the house",
+	TempMatch:   "Eb2iev8zpxgy-dxe",
+}
+
 func TestDb_NewRepository_CantConnect(t *testing.T) {
 	_, err := NewRepository("")
 
@@ -608,52 +617,6 @@ func TestDb_DeleteDish_QueryError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
-//Add expect query which returns the original dish (which it shouldn't, hence the error)
-/*
-func TestDb_DeleteDish_CheckError(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if testerr != nil {
-		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
-	}
-	defer db.Close()
-
-	repo := &repository{db: db}
-
-	nD := &dish.Dish{
-		DishID:         2,
-		PersonalDishID: 2,
-		UserID:         1,
-		StorageID:      3,
-		Title:          "Carrots",
-		Description:    "Some carrots we got at the store",
-		CreatedDate:    "2006-01-02T15:04:05",
-		ExpireDate:     "2020-10-13T08:00",
-		Priority:       "",
-		DishType:       "",
-		Portions:       -1,
-		TempMatch:      "9r842d3a351",
-	}
-
-	countRow := sqlmock.NewRows([]string{"COUNT(*)"}).
-		AddRow(3)
-
-	deleteRows := sqlmock.NewRows([]string{""})
-
-	updateRows := sqlmock.NewRows([]string{""})
-
-	mock.ExpectQuery(fmt.Sprintf(GetPersonalDishCountBase, nD.UserID)).WillReturnRows(countRow)
-
-	mock.ExpectQuery(fmt.Sprintf(DeleteDishBase, nD.DishID)).WillReturnRows(deleteRows)
-
-	mock.ExpectQuery(`UPDATE dish SET personal_id = personal_id - 1 WHERE user_id = 1 AND personal_id IN(3)`).WillReturnRows(updateRows)
-
-	err := repo.DeleteDish(*nD)
-
-	assert.NotNil(t, err)
-	assert.Equal(t, http.StatusInternalServerError, err.Status())
-}
-*/
-
 func TestDb_GetUsers(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if testerr != nil {
@@ -832,9 +795,9 @@ func TestDb_GetUserByID_NotFound(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "email", "first_name", "last_name", "full_name", "created_date",
 		"access_token", "refresh_token", "alexa_user_id", "is_admin", "temp_match"})
 
-	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnRows(rows)
 
-	resultingUser, err := repo.GetUserByID(1)
+	resultingUser, err := repo.GetUserByID(nU.UserID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingUser)
@@ -1681,13 +1644,13 @@ func TestDb_GetStoragesByUser(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(1, 1, "Fridge", "The main Fridge in the kitchen", "k344af658434bz456").
-		AddRow(2, 1, "Garage Freezer", "The freezer in the garage", "k344af645635843vz4")
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch).
+		AddRow(nS.StorageID+1, nS.PersonalID+1, nS.UserID, nS.Title+"2", nS.Description+"2", nS.TempMatch+"2")
 
-	mock.ExpectQuery(fmt.Sprintf(GetStoragesByUserBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStoragesBase, nS.UserID)).WillReturnRows(rows)
 
-	resultingStorages, err := repo.GetStoragesByUser(1)
+	resultingStorages, err := repo.GetStorages(nS.UserID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(*resultingStorages))
@@ -1695,11 +1658,8 @@ func TestDb_GetStoragesByUser(t *testing.T) {
 	resultingStorage1 := (*resultingStorages)[0]
 	resultingStorage2 := (*resultingStorages)[1]
 
-	assert.Equal(t, "Fridge", resultingStorage1.Title)
-	assert.Equal(t, "Garage Freezer", resultingStorage2.Title)
-
-	assert.Equal(t, 1, resultingStorage1.StorageID)
-	assert.Equal(t, 2, resultingStorage2.StorageID)
+	assert.Equal(t, *nS, resultingStorage1)
+	assert.NotEqual(t, resultingStorage1, resultingStorage2)
 }
 
 func TestDb_GetStoragesByUser_NotFound(t *testing.T) {
@@ -1711,11 +1671,11 @@ func TestDb_GetStoragesByUser_NotFound(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"})
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"})
 
-	mock.ExpectQuery(fmt.Sprintf(GetStoragesByUserBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStoragesBase, nS.UserID)).WillReturnRows(rows)
 
-	resultingStorages, err := repo.GetStoragesByUser(1)
+	resultingStorages, err := repo.GetStorages(nS.UserID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingStorages)
@@ -1732,9 +1692,9 @@ func TestDb_GetStoragesByUser_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	mock.ExpectQuery(fmt.Sprintf(GetStoragesByUserBase, 1)).WillReturnError(errors.New("database error"))
+	mock.ExpectQuery(fmt.Sprintf(GetStoragesBase, 1)).WillReturnError(errors.New("database error"))
 
-	resultingStorages, err := repo.GetStoragesByUser(1)
+	resultingStorages, err := repo.GetStorages(nS.UserID)
 
 	assert.Nil(t, resultingStorages)
 	assert.NotNil(t, err)
@@ -1751,12 +1711,12 @@ func TestDb_GetStoragesByUser_RowScanError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow("Should be INT", 1, "Fridge", "The main Fridge in the kitchen", "k344af658434bz456")
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow("SHOULD BE INT", nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStoragesByUserBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStoragesBase, nS.UserID)).WillReturnRows(rows)
 
-	resultingStorages, err := repo.GetStoragesByUser(1)
+	resultingStorages, err := repo.GetStorages(nS.UserID)
 
 	assert.Nil(t, resultingStorages)
 	assert.NotNil(t, err)
@@ -1773,29 +1733,17 @@ func TestDb_GetStorageByID(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.StorageID)).WillReturnRows(rows)
-
-	resultingStorage, err := repo.GetStorageByID(1)
+	resultingStorage, err := repo.GetStorageByID(nS.UserID, nS.PersonalID)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resultingStorage)
 
-	assert.Equal(t, nS.StorageID, resultingStorage.StorageID)
-	assert.Equal(t, nS.UserID, resultingStorage.UserID)
-	assert.Equal(t, nS.Title, resultingStorage.Title)
-	assert.Equal(t, nS.Description, resultingStorage.Description)
-	assert.Equal(t, nS.TempMatch, resultingStorage.TempMatch)
+	assert.Equal(t, nS, resultingStorage)
 
 }
 
@@ -1808,9 +1756,9 @@ func TestDb_GetStorageByID_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnError(errors.New("database error"))
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnError(errors.New("database error"))
 
-	resultingStorage, err := repo.GetStorageByID(1)
+	resultingStorage, err := repo.GetStorageByID(nS.UserID, nS.PersonalID)
 
 	assert.Nil(t, resultingStorage)
 	assert.NotNil(t, err)
@@ -1828,11 +1776,11 @@ func TestDb_GetStorageByID_NotFound(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"})
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"})
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
 
-	resultingStorage, err := repo.GetStorageByID(1)
+	resultingStorage, err := repo.GetStorageByID(nS.UserID, nS.PersonalID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingStorage)
@@ -1850,11 +1798,12 @@ func TestDb_GetStorageByID_RowScanError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(1, "ShouldBeInt", "Fridge", "The Main Fridge", "1v842d2343645")
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, "SHOULD BE INT", nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnRows(rows)
-	resultingStorage, err := repo.GetStorageByID(1)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
+
+	resultingStorage, err := repo.GetStorageByID(nS.UserID, nS.PersonalID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingStorage)
@@ -1872,13 +1821,13 @@ func TestDb_GetStorageByID_FoundMultiple(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(1, 2, "Fridge", "The Main Fridge", "1v842d2343645").
-		AddRow(1, 2, "Freezer", "The Main Freezer", "346afgdfg3563")
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch).
+		AddRow(nS.StorageID+1, nS.PersonalID+1, nS.UserID, nS.Title+"2", nS.Description+"2", nS.TempMatch+"2")
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, 1)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
 
-	resultingStorage, err := repo.GetStorageByID(1)
+	resultingStorage, err := repo.GetStorageByID(nS.UserID, nS.PersonalID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingStorage)
@@ -1896,20 +1845,12 @@ func TestDb_CreateStorage(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
 	createRows := sqlmock.NewRows([]string{""})
 
-	getRows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+	getRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(2, "Fridge", "the main fridge", ".+"\)`).
+	mock.ExpectQuery(`INSERT INTO storage \(personal_id, user_id, title, description, temp_match\) VALUES\(.+\)`).
 		WillReturnRows(createRows)
 
 	mock.ExpectQuery(`SELECT \* FROM storage WHERE temp_match=".+"`).WillReturnRows(getRows)
@@ -1931,15 +1872,7 @@ func TestDb_CreateStorage_InsertError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
-	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(2, "Fridge", "the main fridge", ".+"\)`).
+	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(.+\)`).
 		WillReturnError(errors.New("not possible"))
 
 	returnedStorage, err := repo.CreateStorage(*nS)
@@ -1959,17 +1892,9 @@ func TestDb_CreateStorage_CheckError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
 	createRows := sqlmock.NewRows([]string{""})
 
-	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(2, "Fridge", "the main fridge", ".+"\)`).
+	mock.ExpectQuery(`INSERT INTO storage \(user_id, title, description, temp_match\) VALUES\(.+\)`).
 		WillReturnRows(createRows)
 
 	mock.ExpectQuery(`SELECT \* FROM storage WHERE temp_match=".+"`).WillReturnError(errors.New("database error"))
@@ -1992,33 +1917,18 @@ func TestDb_UpdateStorage(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
 	updateRows := sqlmock.NewRows([]string{""})
 
-	getRows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+	getRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(UpdateStorageBase, nS.Title, nS.Description, nS.TempMatch, nS.StorageID)).WillReturnRows(updateRows)
+	mock.ExpectQuery(fmt.Sprintf(UpdateStorageBase, nS.PersonalID, nS.Title, nS.Description, nS.TempMatch, nS.StorageID)).WillReturnRows(updateRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.StorageID)).WillReturnRows(getRows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(getRows)
 
-	returnedStorage, err := repo.UpdateStorage(*nS)
+	err := repo.UpdateStorage(*nS)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, returnedStorage)
-
-	assert.Equal(t, nS.StorageID, returnedStorage.StorageID)
-	assert.Equal(t, nS.UserID, returnedStorage.UserID)
-	assert.Equal(t, nS.Title, returnedStorage.Title)
-	assert.Equal(t, nS.Description, returnedStorage.Description)
-	assert.Equal(t, nS.TempMatch, returnedStorage.TempMatch)
 
 }
 
@@ -2031,20 +1941,11 @@ func TestDb_UpdateStorage_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
-	mock.ExpectQuery(fmt.Sprintf(UpdateStorageBase, nS.Title, nS.Description, nS.TempMatch, nS.StorageID)).
+	mock.ExpectQuery(fmt.Sprintf(UpdateStorageBase, nS.PersonalID, nS.Title, nS.Description, nS.TempMatch, nS.StorageID)).
 		WillReturnError(errors.New("database error"))
 
-	returnedStorage, err := repo.UpdateStorage(*nS)
+	err := repo.UpdateStorage(*nS)
 
-	assert.Nil(t, returnedStorage)
 	assert.NotNil(t, err)
 
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
@@ -2060,23 +1961,14 @@ func TestDb_UpdateStorage_CheckError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
 	updateRows := sqlmock.NewRows([]string{""})
 
-	mock.ExpectQuery(fmt.Sprintf(UpdateStorageBase, nS.Title, nS.Description, nS.TempMatch, nS.StorageID)).WillReturnRows(updateRows)
+	mock.ExpectQuery(fmt.Sprintf(UpdateStorageBase, nS.PersonalID, nS.Title, nS.Description, nS.TempMatch, nS.StorageID)).WillReturnRows(updateRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.StorageID)).WillReturnError(errors.New("database error"))
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnError(errors.New("database error"))
 
-	returnedStorage, err := repo.UpdateStorage(*nS)
+	err := repo.UpdateStorage(*nS)
 
-	assert.Nil(t, returnedStorage)
 	assert.NotNil(t, err)
 
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
@@ -2094,19 +1986,11 @@ func TestDb_DeleteStorage(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
 	deleteRows := sqlmock.NewRows([]string{""})
 
-	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.StorageID)).WillReturnRows(deleteRows)
+	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.UserID, nS.PersonalID)).WillReturnRows(deleteRows)
 
-	err := repo.DeleteStorage(*nS)
+	err := repo.DeleteStorage(nS.UserID, nS.PersonalID)
 
 	assert.Nil(t, err)
 }
@@ -2120,17 +2004,9 @@ func TestDb_DeleteStorage_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
+	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.UserID, nS.PersonalID)).WillReturnError(errors.New("database error"))
 
-	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.StorageID)).WillReturnError(errors.New("database error"))
-
-	err := repo.DeleteStorage(*nS)
+	err := repo.DeleteStorage(nS.UserID, nS.PersonalID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
@@ -2146,24 +2022,16 @@ func TestDb_DeleteStorage_CheckError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	nS := &storage.Storage{
-		StorageID:   1,
-		UserID:      2,
-		Title:       "Fridge",
-		Description: "the main fridge",
-		TempMatch:   "1v842d2343645",
-	}
-
 	deleteRows := sqlmock.NewRows([]string{""})
 
-	getRows := sqlmock.NewRows([]string{"id", "user_id", "title", "description", "temp_match"}).
-		AddRow(nS.StorageID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+	getRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.StorageID)).WillReturnRows(deleteRows)
+	mock.ExpectQuery(fmt.Sprintf(DeleteStorageBase, nS.UserID, nS.PersonalID)).WillReturnRows(deleteRows)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.StorageID)).WillReturnRows(getRows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(getRows)
 
-	err := repo.DeleteStorage(*nS)
+	err := repo.DeleteStorage(nS.UserID, nS.PersonalID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
@@ -2179,16 +2047,16 @@ func TestDb_GetStorageDishes(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	sID := 3
-
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(1, 1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "").
-		AddRow(1, 2, 2, 3, "Peas", "Some peas we got at the store", "2007-01-02T15:04:05", "2021-10-13T08:00", 1, "", -1, "")
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch).
+		AddRow(nD.DishID+200, nD.PersonalDishID+1, nD.UserID, nD.StorageID, nD.Title+"2", nD.Description+"2",
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch+"2")
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetStorageDishes(sID)
+	resultingDishes, err := repo.GetStorageDishes(nS.UserID, nS.PersonalID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(*resultingDishes))
@@ -2196,11 +2064,8 @@ func TestDb_GetStorageDishes(t *testing.T) {
 	resultingDish1 := (*resultingDishes)[0]
 	resultingDish2 := (*resultingDishes)[1]
 
-	assert.Equal(t, "Carrots", resultingDish1.Title)
-	assert.Equal(t, "Peas", resultingDish2.Title)
-
-	assert.Equal(t, 1, resultingDish1.UserID)
-	assert.Equal(t, 2, resultingDish2.UserID)
+	assert.Equal(t, *nD, resultingDish1)
+	assert.NotEqual(t, resultingDish1, resultingDish2)
 }
 
 func TestDb_GetStorageDishes_NotFound(t *testing.T) {
@@ -2212,14 +2077,12 @@ func TestDb_GetStorageDishes_NotFound(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	sID := 3
-
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"})
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetStorageDishes(sID)
+	resultingDishes, err := repo.GetStorageDishes(nS.UserID, nS.PersonalID)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, resultingDishes)
@@ -2236,10 +2099,8 @@ func TestDb_GetStorageDishes_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	sID := 3
-
-	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnError(errors.New("database error"))
-	resultingDishes, err := repo.GetStorageDishes(sID)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnError(errors.New("database error"))
+	resultingDishes, err := repo.GetStorageDishes(nS.UserID, nS.PersonalID)
 
 	assert.Nil(t, resultingDishes)
 	assert.NotNil(t, err)
@@ -2256,15 +2117,14 @@ func TestDb_GetStorageDishes_RowScanError(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	sID := 3
-
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow("SHOULDBEINT", 1, 1, 3, "Carrots", "Some carrots we got at the store", "2006-01-02T15:04:05", "2020-10-13T08:00", 1, "", -1, "")
+		AddRow("SHOULD BE INT", nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description,
+			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, sID)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
 
-	resultingDishes, err := repo.GetStorageDishes(sID)
+	resultingDishes, err := repo.GetStorageDishes(nS.UserID, nS.PersonalID)
 
 	assert.Nil(t, resultingDishes)
 	assert.NotNil(t, err)

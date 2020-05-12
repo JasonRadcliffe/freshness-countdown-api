@@ -26,6 +26,9 @@ const GetDishByTempMatchBase = `SELECT * FROM dish WHERE temp_match = "%s"`
 //GetPersonalDishCountBase returns the number of dishes a given user has in the database, to be used for personal_id field
 const GetPersonalDishCountBase = `SELECT COUNT(*) FROM dish WHERE user_id = %d`
 
+//GetPersonalStorageCountBase returns the number of storage units a given user has in the database, to be used for personal_id field
+const GetPersonalStorageCountBase = `SELECT COUNT(*) FROM storage WHERE user_id = %d`
+
 //DecrementSomeDishesBase is used to shift every dish "up" after one in the middle of the dish list is deleted
 const DecrementSomeDishesBase = `UPDATE dish SET personal_id = personal_id - 1 WHERE user_id = %d AND personal_id IN(%s)`
 
@@ -111,8 +114,9 @@ type Repository interface {
 	GetStorages(int) (*storage.Storages, fcerr.FCErr)
 	GetStorageByID(int, int) (*storage.Storage, fcerr.FCErr)
 	GetStorageByTempMatch(string) (*storage.Storage, fcerr.FCErr)
+	GetPersonalStorageCount(int) (int, fcerr.FCErr)
 	CreateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
-	UpdateStorage(storage.Storage) (*storage.Storage, fcerr.FCErr)
+	UpdateStorage(storage.Storage) fcerr.FCErr
 	DeleteStorage(int, int) fcerr.FCErr
 
 	GetStorageDishes(int, int) (*dish.Dishes, fcerr.FCErr)
@@ -341,7 +345,7 @@ func (repo *repository) GetPersonalDishCount(userID int) (int, fcerr.FCErr) {
 	err := personalDishCountRow.Scan(&personalDishCount)
 	if err != nil {
 		fmt.Println("got an error on the get personal count process:" + err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database - before delete command")
+		fcerr := fcerr.NewInternalServerError("Error while checking on how many dishes the user has.")
 		return 0, fcerr
 	}
 	return personalDishCount, nil
@@ -671,7 +675,7 @@ func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
 	return nil
 }
 
-//GetStorage takes an int of a user id and returns the list of storage objects owned by that user.
+//GetStorage takes an int of a user id and returns the list of storage units owned by that user.
 func (repo *repository) GetStorages(userID int) (*storage.Storages, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetStoragesByUser()")
 	var resultingStorages storage.Storages
@@ -690,7 +694,7 @@ func (repo *repository) GetStorages(userID int) (*storage.Storages, fcerr.FCErr)
 		count++
 		var currentStorage storage.Storage
 		fmt.Println("Inside the result set loop. currentStorage:", currentStorage)
-		err := rows.Scan(&currentStorage.StorageID, &currentStorage.UserID, &currentStorage.Title, &currentStorage.Description, &currentStorage.TempMatch)
+		err := rows.Scan(&currentStorage.StorageID, &currentStorage.PersonalID, &currentStorage.UserID, &currentStorage.Title, &currentStorage.Description, &currentStorage.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fmt.Println("&currentStorage.StorageID:", currentStorage.StorageID)
@@ -734,7 +738,7 @@ func (repo *repository) GetStorageByID(userID int, pID int) (*storage.Storage, f
 		}
 		var cStorage storage.Storage
 		fmt.Println("Inside the result set loop. currentStorage:", cStorage)
-		err := rows.Scan(&cStorage.StorageID, &cStorage.UserID, &cStorage.Title, &cStorage.Description, &cStorage.TempMatch)
+		err := rows.Scan(&cStorage.StorageID, &cStorage.PersonalID, &cStorage.UserID, &cStorage.Title, &cStorage.Description, &cStorage.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
@@ -774,7 +778,7 @@ func (repo *repository) GetStorageByTempMatch(tM string) (*storage.Storage, fcer
 		}
 		var cStorage storage.Storage
 		fmt.Println("Inside the result set loop. currentStorage:", cStorage)
-		err := rows.Scan(&cStorage.StorageID, &cStorage.UserID, &cStorage.Title, &cStorage.Description, &cStorage.TempMatch)
+		err := rows.Scan(&cStorage.StorageID, &cStorage.PersonalID, &cStorage.UserID, &cStorage.Title, &cStorage.Description, &cStorage.TempMatch)
 		if err != nil {
 			fmt.Println("got an error from the rows.Scan.")
 			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
@@ -794,7 +798,7 @@ func (repo *repository) GetStorageByTempMatch(tM string) (*storage.Storage, fcer
 //CreateStorage takes a storage object and tries to add it to the database
 func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
 	tMatch := generateTempMatch()
-	createStorageQuery := fmt.Sprintf(CreateStorageBase, s.UserID, s.Title, s.Description, tMatch)
+	createStorageQuery := fmt.Sprintf(CreateStorageBase, s.PersonalID, s.UserID, s.Title, s.Description, tMatch)
 
 	fmt.Println("About to run this Query on the database:\n", createStorageQuery)
 
@@ -817,8 +821,8 @@ func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcer
 }
 
 //UpdateStorage takes a storage object and tries to update the existing storage in the database to match
-func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
-	updateStorageQuery := fmt.Sprintf(UpdateStorageBase, s.Title, s.Description, s.TempMatch, s.StorageID)
+func (repo *repository) UpdateStorage(s storage.Storage) fcerr.FCErr {
+	updateStorageQuery := fmt.Sprintf(UpdateStorageBase, s.PersonalID, s.Title, s.Description, s.TempMatch, s.StorageID)
 
 	fmt.Println("About to run this Query on the database:\n", updateStorageQuery)
 
@@ -826,18 +830,33 @@ func (repo *repository) UpdateStorage(s storage.Storage) (*storage.Storage, fcer
 	if err != nil {
 		fmt.Println("got an error on the query:" + err.Error())
 		fcerr := fcerr.NewInternalServerError("Error while updating the storage unit in the database")
-		return nil, fcerr
+		return fcerr
 	}
 
-	checkStorage, err := repo.GetStorageByID(s.UserID, s.PersonalID)
-	if err != nil {
-		fmt.Println("got an error on the check query:" + err.Error())
+	_, err2 := repo.GetStorageByID(s.UserID, s.PersonalID)
+	if err2 != nil {
+		fmt.Println("got an error on the check query:" + err2.Error())
 		fcerr := fcerr.NewInternalServerError("Error while checking the storage unit that was created." +
 			" Cannot verify if anything was updated in the Database")
-		return nil, fcerr
+		return fcerr
 	}
 
-	return checkStorage, nil
+	return nil
+}
+
+//GetPersonalStorageCount gets the number of dishes the given user has in the database
+func (repo *repository) GetPersonalStorageCount(userID int) (int, fcerr.FCErr) {
+	getPersonalStorageCountQuery := fmt.Sprintf(GetPersonalStorageCountBase, userID)
+	personalStorageCountRow := repo.db.QueryRow(getPersonalStorageCountQuery)
+	var personalStorageCount int
+	err := personalStorageCountRow.Scan(&personalStorageCount)
+	if err != nil {
+		fmt.Println("got an error on the get personal count process:" + err.Error())
+		fcerr := fcerr.NewInternalServerError("Error while checking on how many storage units the user has.")
+		return 0, fcerr
+	}
+	return personalStorageCount, nil
+
 }
 
 //DeleteStorage takes a storage object and tries to delete the existing storage from the database

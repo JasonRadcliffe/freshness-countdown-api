@@ -21,7 +21,7 @@ func mapRoutes() {
 		router.DELETE("/storage/:storage_id", apiHandler.DeleteStorageUnit)
 	*/
 
-	router.GET("/storage/:storage_id/dishes", apiHandler.GetStorageDishes)
+	//router.GET("/storage/:storage_id/dishes", apiHandler.GetStorageDishes)
 
 	router.GET("/login", apiHandler.Login)
 	router.GET("/oauthlogin", apiHandler.Oauthlogin)
