@@ -109,7 +109,7 @@ type Repository interface {
 	GetUserByTempMatch(string) (*user.User, fcerr.FCErr)
 	CreateUser(user.User) (*user.User, fcerr.FCErr)
 	UpdateUser(user.User) (*user.User, fcerr.FCErr)
-	DeleteUser(user.User) fcerr.FCErr
+	DeleteUser(int) fcerr.FCErr
 
 	GetStorages(int) (*storage.Storages, fcerr.FCErr)
 	GetStorageByID(int, int) (*storage.Storage, fcerr.FCErr)
