@@ -617,6 +617,7 @@ func TestDb_DeleteDish_QueryError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
+/* I don't think we need GetUsers for anything...
 func TestDb_GetUsers(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if testerr != nil {
@@ -713,7 +714,7 @@ func TestDb_GetUsers_RowScanError(t *testing.T) {
 	//assert.Equal(t, "Error while scanning the result from the database", err.Message())
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
-
+*/
 func TestDb_GetUserByID(t *testing.T) {
 	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if testerr != nil {

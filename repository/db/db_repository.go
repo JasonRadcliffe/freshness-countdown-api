@@ -102,7 +102,7 @@ type Repository interface {
 	UpdateDish(dish.Dish) fcerr.FCErr
 	DeleteDish(int, int) fcerr.FCErr
 
-	GetUsers() (*user.Users, fcerr.FCErr)
+	//GetUsers() (*user.Users, fcerr.FCErr)
 	GetUserByID(int) (*user.User, fcerr.FCErr)
 	GetUserByEmail(string) (*user.User, fcerr.FCErr)
 	GetUserByAlexa(string) (*user.User, fcerr.FCErr)
@@ -154,7 +154,7 @@ func NewRepositoryWithDB(db *sql.DB) (Repository, fcerr.FCErr) {
 	return &resultDB, nil
 }
 
-//GetDishes returns the list of all dishes in the database
+//GetDishes(userID int) returns a *[]dish - all dishes the user has
 func (repo *repository) GetDishes(userID int) (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetDishes()")
 	var resultDishes dish.Dishes
@@ -243,7 +243,7 @@ func (repo *repository) GetDishByID(userID int, pID int) (*dish.Dish, fcerr.FCEr
 
 }
 
-//GetDishByTempMatch takes a string and queries the mysql database for a dish with this temp_match.
+//GetDishByTempMatch(tm string) takes a string and queries the mysql database for a dish with this temp_match.
 func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) {
 	var resultingDish dish.Dish
 	getDishByTempMatchQuery := fmt.Sprintf(GetDishByTempMatchBase, tm)
@@ -289,7 +289,7 @@ func (repo *repository) GetDishByTempMatch(tm string) (*dish.Dish, fcerr.FCErr) 
 	return &resultingDish, nil
 }
 
-//CreateDish takes a dish object and tries to add it to the database
+//CreateDish(d dish.Dish) takes a dish object and tries to add it to the database
 func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	tMatch := generateTempMatch()
 	createDishQuery := fmt.Sprintf(CreateDishBase, d.PersonalDishID, d.UserID, d.StorageID, d.Title, d.Description,
@@ -315,7 +315,7 @@ func (repo *repository) CreateDish(d dish.Dish) (*dish.Dish, fcerr.FCErr) {
 	return checkDish, nil
 }
 
-//UpdateDish takes a dish object and tries to update the existing dish in the database to match
+//UpdateDish(d dish.Dish) takes a dish object and tries to update the existing dish in the database to match
 func (repo *repository) UpdateDish(d dish.Dish) fcerr.FCErr {
 	updateDishQuery := fmt.Sprintf(UpdateDishBase, d.PersonalDishID, d.StorageID, d.Title, d.Description,
 		d.ExpireDate, d.Priority, d.DishType, d.Portions, d.DishID)
@@ -337,7 +337,7 @@ func (repo *repository) UpdateDish(d dish.Dish) fcerr.FCErr {
 	return nil
 }
 
-//GetPersonalDishCount gets the number of dishes the given user has in the database
+//GetPersonalDishCount(userID int) gets the number of dishes the given user has in the database
 func (repo *repository) GetPersonalDishCount(userID int) (int, fcerr.FCErr) {
 	getPersonalDishCountQuery := fmt.Sprintf(GetPersonalDishCountBase, userID)
 	personalDishCountRow := repo.db.QueryRow(getPersonalDishCountQuery)
@@ -352,7 +352,7 @@ func (repo *repository) GetPersonalDishCount(userID int) (int, fcerr.FCErr) {
 
 }
 
-//DeleteDish takes a requesting user and a personal dish id and tries to delete the dish
+//DeleteDish(userID int, pID int) takes a requesting user and a personal dish id and tries to delete the dish
 func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 	personalDishCount, err := repo.GetPersonalDishCount(userID)
 	if err != nil {
@@ -378,8 +378,7 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 		return fcerr
 	}
 
-	//TODO - fix hardcoding of user id 1 after we have the requesting user here
-	decrementSomeDishesQuery := fmt.Sprintf(DecrementSomeDishesBase, 1, pDSstr)
+	decrementSomeDishesQuery := fmt.Sprintf(DecrementSomeDishesBase, userID, pDSstr)
 	fmt.Println("about to run this query on the db:", decrementSomeDishesQuery)
 	_, err3 := repo.db.Query(decrementSomeDishesQuery)
 	if err3 != nil {
@@ -398,6 +397,7 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 	return nil
 }
 
+/* I don't think we need GetUsers() for anything...
 //GetUsers queries the database and returns a slice of User objects
 func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetUsers()")
@@ -438,8 +438,9 @@ func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
 
 	return &resultingUsers, nil
 }
+*/
 
-//GetUserByID gets a user from the database with the given ID.
+//GetUserByID(id int) gets a user from the database with the given ID.
 func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
 	getUserByIDQuery := fmt.Sprintf(GetUserByIDBase, id)
 	fmt.Println("About to run this Query on the database:\n", getUserByIDQuery)

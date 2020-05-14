@@ -40,7 +40,6 @@ type Handler interface {
 		DeleteStorageUnit(*gin.Context)
 	*/
 
-	GetUsers(*gin.Context)
 	GetUserHandler(*gin.Context)
 	GetUserByID(*gin.Context)
 	GetUserByEmail(*gin.Context)
@@ -719,14 +718,6 @@ func deleteStorage(requestingUser *userDomain.User, storageID int, service stora
 //##################################################################################################################
 
 //^^^^^Users Section^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//GetUsers gets all the users the active user has permissions for.
-func (h *handler) GetUsers(c *gin.Context) {
-	fmt.Println("NEW____-----Running the GetUsers function")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetUsers function",
-	})
-}
 
 //GetUserHandler decides if the param is an email and routes between GetUserByID and GetUserByEmail
 func (h *handler) GetUserHandler(c *gin.Context) {
