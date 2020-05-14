@@ -481,7 +481,7 @@ func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
 	return &resultingUser, nil
 }
 
-//GetUserByEmail gets a user from the database with the given Email.
+//GetUserByEmail(email string) gets a user from the database with the given Email.
 func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 	getUserByEmailQuery := fmt.Sprintf(GetUserByEmailBase, email)
 	fmt.Println("About to run this Query on the database:\n", getUserByEmailQuery)
@@ -522,7 +522,7 @@ func (repo *repository) GetUserByEmail(email string) (*user.User, fcerr.FCErr) {
 	return &resultingUser, nil
 }
 
-//GetUserByAlexa gets a user from the database with the given alexa_user_id.
+//GetUserByAlexa(aID string) gets a user from the database with the given alexa_user_id.
 func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
 	getUserByAlexaQuery := fmt.Sprintf(GetUserByAlexaBase, aID)
 	fmt.Println("About to run this Query on the database:\n", getUserByAlexaQuery)
@@ -563,7 +563,7 @@ func (repo *repository) GetUserByAlexa(aID string) (*user.User, fcerr.FCErr) {
 	return &resultingUser, nil
 }
 
-//GetUserByTempMatch gets a user from the database with the given email.
+//GetUserByTempMatch(tm string) gets a user from the database with the given email.
 func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) {
 	getUserByTempMatchQuery := fmt.Sprintf(GetUserByTempMatchBase, tm)
 	fmt.Println("About to run this Query on the database:\n", getUserByTempMatchQuery)
@@ -604,6 +604,7 @@ func (repo *repository) GetUserByTempMatch(tm string) (*user.User, fcerr.FCErr) 
 	return &resultingUser, nil
 }
 
+//CreateUser(u user.User) takes a user object and attempts to add it to the database
 func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
 	tMatch := generateTempMatch()
 	createUserQuery := fmt.Sprintf(CreateUserBase, u.Email, u.FirstName, u.LastName, u.FullName,
@@ -629,7 +630,7 @@ func (repo *repository) CreateUser(u user.User) (*user.User, fcerr.FCErr) {
 	return checkUser, nil
 }
 
-//UpdateUser takes a user object and tries to update the existing user in the database to match
+//UpdateUser(u user.User) takes a user object and tries to update the existing user in the database to match
 func (repo *repository) UpdateUser(u user.User) (*user.User, fcerr.FCErr) {
 	updateUserQuery := fmt.Sprintf(UpdateUserBase, u.Email, u.FirstName, u.LastName,
 		u.FullName, u.AccessToken, u.RefreshToken, u.AlexaUserID, u.TempMatch, u.UserID)
@@ -654,9 +655,9 @@ func (repo *repository) UpdateUser(u user.User) (*user.User, fcerr.FCErr) {
 	return checkDish, nil
 }
 
-//DeleteUser takes a user object and tries to delete the existing user from the database
-func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
-	deleteUserQuery := fmt.Sprintf(DeleteUserBase, u.UserID)
+//DeleteUser(uID int) takes a user id int and tries to delete the existing user from the database
+func (repo *repository) DeleteUser(uID int) fcerr.FCErr {
+	deleteUserQuery := fmt.Sprintf(DeleteUserBase, uID)
 
 	_, err := repo.db.Query(deleteUserQuery)
 	if err != nil {
@@ -666,7 +667,7 @@ func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
 
 	}
 
-	returnedUser, err := repo.GetUserByID(u.UserID)
+	returnedUser, err := repo.GetUserByID(uID)
 	if err == nil {
 		fmt.Println("Expected an error here, but didn't get one!! User Email:" + returnedUser.Email)
 		fcerr := fcerr.NewInternalServerError("Error while deleting the user from the database, could not verify it was deleted.")
@@ -676,7 +677,7 @@ func (repo *repository) DeleteUser(u user.User) fcerr.FCErr {
 	return nil
 }
 
-//GetStorage takes an int of a user id and returns the list of storage units owned by that user.
+//GetStorages(userID int) takes an int of a user id and returns a []storage units owned by that user.
 func (repo *repository) GetStorages(userID int) (*storage.Storages, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetStoragesByUser()")
 	var resultingStorages storage.Storages
@@ -716,7 +717,7 @@ func (repo *repository) GetStorages(userID int) (*storage.Storages, fcerr.FCErr)
 	return &resultingStorages, nil
 }
 
-//GetStorageByID takes an int and queries the mysql database for a storage with this id.
+//GetStorageByID(userID int, pID int) queries the mysql database for a storage belonging to the requesting user with the personal id given
 func (repo *repository) GetStorageByID(userID int, pID int) (*storage.Storage, fcerr.FCErr) {
 	getStorageByIDQuery := fmt.Sprintf(GetStorageByIDBase, userID, pID)
 	fmt.Println("About to run this Query on the database:\n", getStorageByIDQuery)
@@ -756,7 +757,7 @@ func (repo *repository) GetStorageByID(userID int, pID int) (*storage.Storage, f
 	return &resultingStorage, nil
 }
 
-//GetStorageByTempMatch takes a string and queries the mysql database for a storage with this temp_match.
+//GetStorageByTempMatch(tM string) takes a string and queries the mysql database for a storage with this temp_match.
 func (repo *repository) GetStorageByTempMatch(tM string) (*storage.Storage, fcerr.FCErr) {
 	getStorageByIDQuery := fmt.Sprintf(GetStorageByTempMatchBase, tM)
 	fmt.Println("About to run this Query on the database:\n", getStorageByIDQuery)
@@ -796,7 +797,7 @@ func (repo *repository) GetStorageByTempMatch(tM string) (*storage.Storage, fcer
 	return &resultingStorage, nil
 }
 
-//CreateStorage takes a storage object and tries to add it to the database
+//reateStorage(s storage.Storage) takes a storage object and tries to add it to the database
 func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcerr.FCErr) {
 	tMatch := generateTempMatch()
 	createStorageQuery := fmt.Sprintf(CreateStorageBase, s.PersonalID, s.UserID, s.Title, s.Description, tMatch)
@@ -821,7 +822,7 @@ func (repo *repository) CreateStorage(s storage.Storage) (*storage.Storage, fcer
 	return checkStorage, nil
 }
 
-//UpdateStorage takes a storage object and tries to update the existing storage in the database to match
+//UpdateStorage(s storage.Storage) takes a storage object and tries to update the existing storage in the database to match
 func (repo *repository) UpdateStorage(s storage.Storage) fcerr.FCErr {
 	updateStorageQuery := fmt.Sprintf(UpdateStorageBase, s.PersonalID, s.Title, s.Description, s.TempMatch, s.StorageID)
 
@@ -845,7 +846,7 @@ func (repo *repository) UpdateStorage(s storage.Storage) fcerr.FCErr {
 	return nil
 }
 
-//GetPersonalStorageCount gets the number of dishes the given user has in the database
+//GetPersonalStorageCount(userID int) gets the number of dishes the given user has in the database
 func (repo *repository) GetPersonalStorageCount(userID int) (int, fcerr.FCErr) {
 	getPersonalStorageCountQuery := fmt.Sprintf(GetPersonalStorageCountBase, userID)
 	personalStorageCountRow := repo.db.QueryRow(getPersonalStorageCountQuery)
@@ -860,7 +861,7 @@ func (repo *repository) GetPersonalStorageCount(userID int) (int, fcerr.FCErr) {
 
 }
 
-//DeleteStorage takes a storage object and tries to delete the existing storage from the database
+//DeleteStorage(userID int, pID int) takes a user id and a personal id number and tries to delete the existing storage from the database
 func (repo *repository) DeleteStorage(userID int, pID int) fcerr.FCErr {
 	deleteStorageQuery := fmt.Sprintf(DeleteStorageBase, userID, pID)
 
@@ -882,7 +883,7 @@ func (repo *repository) DeleteStorage(userID int, pID int) fcerr.FCErr {
 	return nil
 }
 
-//GetStorageDishes takes a storage object and tries to update the existing storage in the database to match
+//GetStorageDishes(userID int, storagePID int) takes a personal id number and returns the []dish contained in that user's matching storage unit
 func (repo *repository) GetStorageDishes(userID int, storagePID int) (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetStorageDishes()")
 	var resultDishes dish.Dishes
