@@ -593,9 +593,9 @@ func TestDb_DeleteDish(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(DeleteDishBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(deleteRows)
 
-	mock.ExpectQuery(`UPDATE dish SET personal_id = personal_id - 1 WHERE user_id = 1 AND personal_id IN(3)`).WillReturnRows(updateRows)
+	mock.ExpectQuery(fmt.Sprintf(DecrementSomeDishesBase, nD.UserID, "3")).WillReturnRows(updateRows)
 
-	err := repo.DeleteDish(nU.UserID, nD.PersonalDishID)
+	err := repo.DeleteDish(nD.UserID, nD.PersonalDishID)
 
 	assert.Nil(t, err)
 }
