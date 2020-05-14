@@ -8,7 +8,6 @@ func mapRoutes() {
 
 	router.POST("/storage", apiHandler.HandleStorageRequest)
 
-	router.GET("/users", apiHandler.GetUsers)
 	router.GET("/users/:user_id", apiHandler.GetUserHandler)
 	router.POST("/users", apiHandler.CreateUser)
 	router.DELETE("/users/:user_id", apiHandler.DeleteUser)
