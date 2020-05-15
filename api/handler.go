@@ -31,23 +31,9 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	/*
-		GetStorageDishes(*gin.Context)
-		GetStorageByID(*gin.Context)
-		GetStorageUnits(*gin.Context)
-		CreateStorageUnit(*gin.Context)
-		UpdateStorageUnit(*gin.Context)
-		DeleteStorageUnit(*gin.Context)
-	*/
-
-	GetUserHandler(*gin.Context)
-	GetUserByID(*gin.Context)
-	GetUserByEmail(*gin.Context)
-	CreateUser(*gin.Context)
-	DeleteUser(*gin.Context)
-
 	HandleDishesRequest(*gin.Context)
 	HandleStorageRequest(*gin.Context)
+	HandleUsersRequest(*gin.Context)
 }
 
 type oauthConfig interface {
@@ -119,8 +105,7 @@ func ValidateUser(h *handler, aR apiRequest) (*userDomain.User, fcerr.FCErr) {
 	return alexaIDUser, nil
 }
 
-//------New Handler Section - Dishes-----------------------------------------------------------------------
-//
+//------Handler Section - Dishes--------------------------------------------------------------------------
 func (h *handler) HandleDishesRequest(c *gin.Context) {
 	var aR apiRequest
 
@@ -157,7 +142,6 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			})
 			return
 		} else if dishIDParam != "" {
-			fmt.Println("NEW____-----GOT THE NORMAL GETDISHES ROUTE!!!...... in the NEW handler")
 			dishID, err := strconv.Atoi(dishIDParam)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
@@ -189,7 +173,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		}
 
 	case "POST":
-		fmt.Println("doing the new createDishes() within the new dish request handler")
+		fmt.Println("doing the createDishes() within the dish request handler")
 		err := createDish(requestUser, aR, h.dishService)
 		if err != nil {
 			c.AbortWithStatus(err.Status())
@@ -234,6 +218,9 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 	}
 }
 
+//---------------------------------------------------------------------------------------------------------
+
+//****Handler Section - Storage ****************************************************************************
 func (h *handler) HandleStorageRequest(c *gin.Context) {
 	var aR apiRequest
 
@@ -258,7 +245,7 @@ func (h *handler) HandleStorageRequest(c *gin.Context) {
 
 	case "GET":
 		if storageIDParam != "" {
-			fmt.Println("NEW____-----GOT THE NORMAL GETStorage ROUTE!!!...... in the NEW handler")
+			fmt.Println("GOT THE NORMAL GETStorage ROUTE!!!")
 			storageID, err := strconv.Atoi(storageIDParam)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
@@ -275,22 +262,21 @@ func (h *handler) HandleStorageRequest(c *gin.Context) {
 				"message": marshaledStorage,
 			})
 			return
-		} else {
-			fmt.Println("got the getStorage route!!!")
-			marshaledStorageList, err := getStorage(requestUser, h.storageService)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-
-			c.JSON(200, gin.H{
-				"message": marshaledStorageList,
-			})
+		}
+		fmt.Println("got the getStorage route!!!")
+		marshaledStorageList, err := getStorage(requestUser, h.storageService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
+		c.JSON(200, gin.H{
+			"message": marshaledStorageList,
+		})
+		return
+
 	case "POST":
-		fmt.Println("doing the new createStorage() within the new storage request handler")
+		fmt.Println("doing the createStorage() within the storage request handler")
 		err := createStorage(requestUser, aR, h.storageService)
 		if err != nil {
 			c.AbortWithStatus(err.Status())
@@ -336,20 +322,70 @@ func (h *handler) HandleStorageRequest(c *gin.Context) {
 
 }
 
-//---------------------------------------------------------------------------------------------------------
+//*********************************************************************************************************
+
+//^^^^^^^^^Handler Section - Users^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+func (h *handler) HandleUsersRequest(c *gin.Context) {
+	var aR apiRequest
+
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	/*
+		requestUser, err := ValidateUser(h, aR)
+		if err != nil {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+	*/
+
+	switch aR.RequestType {
+	case "POST":
+		fmt.Println("doing the createUsers() within the users request handler")
+		c.JSON(200, gin.H{
+			"message": []byte("Your user has been added to the database."),
+		})
+		return
+
+	case "PATCH":
+		fmt.Println("doing the updateUsers() within the users request handler")
+		c.JSON(200, gin.H{
+			"message": []byte("Your user has been updated in the database."),
+		})
+		return
+	case "DELETE":
+		fmt.Println("doing the deleteUsers() within the users request handler")
+		c.JSON(200, gin.H{
+			"message": []byte("Your user has been removed from the database."),
+		})
+		return
+
+	default:
+		c.AbortWithStatus(http.StatusNotImplemented)
+
+	}
+}
+
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 //Ping is the test function to see if the server is being hit.
 func (h *handler) Ping(c *gin.Context) {
-	fmt.Println("NEW____-----Running the Ping function: Ping")
+	fmt.Println("Running the Ping function: Ping")
 	c.JSON(200, gin.H{
-		"message": "NEW----Ping",
+		"message": "ping says: PONG",
 	})
 }
 
 func (h *handler) Pong(c *gin.Context) {
-	fmt.Println("NEW - - - PONG PONG PONG - got the pong method!")
+	fmt.Println("got the pong method!")
 	c.JSON(200, gin.H{
-		"message": "NEW----pong",
+		"message": "pong says: PING",
 	})
 }
 
@@ -367,7 +403,6 @@ func (h *handler) Oauthlogin(c *gin.Context) {
 	fmt.Println("Running the Oauthlogin function")
 	oauthstate := numGenerator()
 	url := getOAuthURL(h.oauthConfig, oauthstate)
-	fmt.Println("***********New interface function URL:\n", url)
 	cookie := &http.Cookie{
 		Name:   "oauthstate",
 		Value:  oauthstate,
@@ -378,12 +413,12 @@ func (h *handler) Oauthlogin(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-//Oauthlogin takes a user to the external google sign in flow.
+//getOAuthURL takes an oauthConfig (real or mocked) and does the .AuthCodeURL() with it.
 func getOAuthURL(oC oauthConfig, state string) string {
-	fmt.Println("Running the getURL function which takes an oauthConfig (real or mocked), does the .AuthCodeURL() method on it")
 	return oC.AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
+//getOAuthToken takes an oauthConfig (real or mocked) and does the .Exchange() with it.
 func getOAuthToken(oC oauthConfig, c *gin.Context, code string) (*oauth2.Token, error) {
 	token, err := oC.Exchange(c, code)
 	return token, err
@@ -414,7 +449,6 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("***********New interface function to get token:\n", token)
 
 	response, err := http.Get("https://openidconnect.googleapis.com/v1/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
@@ -474,14 +508,13 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
-	fmt.Println("NEW____-----Running the GetDishes function")
+	fmt.Println("Running the getDishes function")
 
 	//accessToken := aR.AccessToken
 
 	dishes, err = service.GetAll(requestUser)
 
 	if err != nil {
-		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
 		fmt.Println("could not handle the GetDishes route")
 		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
 	}
@@ -523,7 +556,7 @@ func getDishByID(pID int, requestingUser *userDomain.User, service dish.Service)
 func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
-	fmt.Println("NEW____-----Running the GetDishes function")
+	fmt.Println("Running the getExpiredDishes function")
 
 	//accessToken := aR.AccessToken
 
@@ -619,7 +652,7 @@ func deleteDish(requestingUser *userDomain.User, dishID int, service dish.Servic
 func getStorage(requestUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
 	var storageList *storageDomain.Storages
 	var err fcerr.FCErr
-	fmt.Println("NEW____-----Running the GetDishes function")
+	fmt.Println("Running the getStorage function")
 
 	//accessToken := aR.AccessToken
 
@@ -684,7 +717,7 @@ func createStorage(requestingUser *userDomain.User, aR apiRequest, service stora
 
 //updateStorage takes a requesting user, and an API request along with the storage service to update the storage unit to the values contained in the apirequest
 func updateStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
-	fmt.Println("running the updateStorage() non-handler function")
+	fmt.Println("running the updateStorage() function")
 
 	storageID, err := strconv.Atoi(aR.StorageID)
 	if err != nil {
@@ -707,7 +740,7 @@ func updateStorage(requestingUser *userDomain.User, aR apiRequest, service stora
 
 //deleteStorage takes a requesting user, and a storage ID along with the storage service to delete the storage unit with the personal id given
 func deleteStorage(requestingUser *userDomain.User, storageID int, service storage.Service) fcerr.FCErr {
-	fmt.Println("running the deleteStorage() non-handler function")
+	fmt.Println("running the deleteStorage() function")
 	err := service.Delete(requestingUser, storageID)
 	if err != nil {
 		return fcerr.NewInternalServerError("Error when deleting the storage unit")
@@ -716,57 +749,6 @@ func deleteStorage(requestingUser *userDomain.User, storageID int, service stora
 }
 
 //##################################################################################################################
-
-//^^^^^Users Section^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//GetUserHandler decides if the param is an email and routes between GetUserByID and GetUserByEmail
-func (h *handler) GetUserHandler(c *gin.Context) {
-	userID := c.Param("dish_id")
-	if userID == "expired" {
-		fmt.Println("NEW____-----GOT THE GetUserByEmail ROUTE!!! ...... in the NEW handler!")
-		h.GetUserByEmail(c)
-	} else {
-		fmt.Println("NEW____-----GOT THE NORMAL GetUserByID ROUTE!!!...... in the NEW handler")
-		h.GetUserByID(c)
-	}
-}
-
-//GetUserByID gets a specific user if the active user has permissions to see.
-func (h *handler) GetUserByID(c *gin.Context) {
-	userID := c.Param("user_id")
-	fmt.Println("NEW____-----Running the GetUser function for the user with this email:", userID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetUser function for this user:" + userID,
-	})
-}
-
-//GetUserByEmail gets a specific user if the active user has permissions to see.
-func (h *handler) GetUserByEmail(c *gin.Context) {
-	userID := c.Param("user_id")
-	fmt.Println("NEW____-----Running the GetUser function for this user:", userID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the GetUser function for this user:" + userID,
-	})
-}
-
-//CreateUser adds a user to the list
-func (h *handler) CreateUser(c *gin.Context) {
-	fmt.Println("NEW____-----Running the CreateUser function")
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the CreateUser function",
-	})
-}
-
-//DeleteUser deletes a specific user from the list
-func (h *handler) DeleteUser(c *gin.Context) {
-	userID := c.Param("user_id")
-	fmt.Println("NEW____-----Running the DeleteUser function for this user:", userID)
-	c.JSON(200, gin.H{
-		"message": "NEW----Running the DeleteUser function for this user:" + userID,
-	})
-}
-
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 func numGenerator() string {
 	n := make([]byte, 32)
