@@ -1559,7 +1559,7 @@ func TestDb_DeleteUser(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(DeleteUserBase, nU.UserID)).WillReturnRows(deleteRows)
 
-	err := repo.DeleteUser(*nU)
+	err := repo.DeleteUser(nU.UserID)
 
 	assert.Nil(t, err)
 }
@@ -1588,7 +1588,7 @@ func TestDb_DeleteUser_QueryError(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(DeleteUserBase, nU.UserID)).WillReturnError(errors.New("database error"))
 
-	err := repo.DeleteUser(*nU)
+	err := repo.DeleteUser(nU.UserID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
@@ -1629,7 +1629,7 @@ func TestDb_DeleteUser_CheckError(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(GetUserByIDBase, nU.UserID)).WillReturnRows(getRows)
 
-	err := repo.DeleteUser(*nU)
+	err := repo.DeleteUser(nU.UserID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
