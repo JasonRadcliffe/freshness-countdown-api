@@ -64,10 +64,6 @@ type apiRequest struct {
 	Portions     int    `json:"portions"`
 }
 
-type apiResponse struct {
-	Message dishDomain.Dishes `json:"message"`
-}
-
 var oauthstate string
 var currentUser userDomain.OauthUser
 
@@ -105,7 +101,7 @@ func ValidateUser(h *handler, aR apiRequest) (*userDomain.User, fcerr.FCErr) {
 	return alexaIDUser, nil
 }
 
-//------Handler Section - Dishes--------------------------------------------------------------------------
+//------Dishes Handler and Helpers---------------------------------------------------------------------------------------------------------------
 func (h *handler) HandleDishesRequest(c *gin.Context) {
 	var aR apiRequest
 
@@ -218,9 +214,150 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 	}
 }
 
-//---------------------------------------------------------------------------------------------------------
+//getDishes gets all the dishes the active user has
+func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
+	var dishes *dishDomain.Dishes
+	var err fcerr.FCErr
+	fmt.Println("Running the getDishes function")
 
-//****Handler Section - Storage ****************************************************************************
+	//accessToken := aR.AccessToken
+
+	dishes, err = service.GetAll(requestUser)
+
+	if err != nil {
+		fmt.Println("could not handle the GetDishes route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+
+	marshaledDishes, merr := json.Marshal(dishes)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDishes, nil
+}
+
+//getDishByID gets a particular dish the requesting user has
+func getDishByID(pID int, requestingUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
+	var dish *dishDomain.Dish
+	var err fcerr.FCErr
+	fmt.Println("running non-gin getDishByID func")
+
+	//accessToken := aR.AccessToken
+
+	dish, err = service.GetByID(requestingUser, pID)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
+		fmt.Println("could not handle the GetDishes route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got a dish!!! It is:", dish.Title)
+
+	marshaledDish, merr := json.Marshal(dish)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDish, nil
+}
+
+//getExpiredDishes gets all the dishes the active user has that have already expired
+func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
+	var dishes *dishDomain.Dishes
+	var err fcerr.FCErr
+	fmt.Println("Running the getExpiredDishes function")
+
+	//accessToken := aR.AccessToken
+
+	dishes, err = service.GetExpired(rUser)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
+		fmt.Println("could not handle the get expired dishes handle function")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	fmt.Println("The length of the list we got is:", len(*dishes))
+
+	marshaledDishes, merr := json.Marshal(dishes)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDishes, nil
+}
+
+//createDish adds a dish to the list
+func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
+
+	fmt.Println("running the createDish() non-handler function")
+
+	storageID, err := strconv.Atoi(aR.StorageID)
+	if err != nil {
+		return fcerr.NewBadRequestError("Error when creating the dish.")
+	}
+
+	newDish := &dishDomain.Dish{
+		StorageID:   storageID,
+		Title:       aR.Title,
+		Description: aR.Description,
+		Priority:    aR.Priority,
+		DishType:    aR.DishType,
+		Portions:    aR.Portions,
+	}
+	expireWindow := aR.ExpireWindow
+
+	resultingDish, err := service.Create(requestingUser, newDish, expireWindow)
+
+	if err != nil || resultingDish.DishID == 0 {
+		return fcerr.NewInternalServerError("seems to have brokne")
+	}
+	return nil
+
+}
+
+//updateDish takes a requesting user, and an API request along with the dish service to update the dish to the values contained in the apirequest
+func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
+	fmt.Println("running the updateDish() non-handler function")
+
+	storageID, err := strconv.Atoi(aR.StorageID)
+	if err != nil {
+		return fcerr.NewBadRequestError("Error when creating the dish.")
+	}
+
+	newDish := &dishDomain.Dish{
+		StorageID:   storageID,
+		Title:       aR.Title,
+		Description: aR.Description,
+		Priority:    aR.Priority,
+		DishType:    aR.DishType,
+		Portions:    aR.Portions,
+	}
+	expireWindow := aR.ExpireWindow
+
+	err2 := service.Update(requestingUser, newDish, expireWindow)
+
+	if err2 != nil {
+		return fcerr.NewInternalServerError("Error when updating the dish")
+	}
+	return nil
+}
+
+//deleteDish takes a requesting user, and a dish ID along with the dish service to delete the dish with the personal id given
+func deleteDish(requestingUser *userDomain.User, dishID int, service dish.Service) fcerr.FCErr {
+	fmt.Println("running the updateDish() non-handler function")
+	err := service.Delete(requestingUser, dishID)
+	if err != nil {
+		return fcerr.NewInternalServerError("Error when deleting the dish")
+	}
+	return nil
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+
+//****Storage Handler and helpers********************************************************************************************************************
 func (h *handler) HandleStorageRequest(c *gin.Context) {
 	var aR apiRequest
 
@@ -322,9 +459,109 @@ func (h *handler) HandleStorageRequest(c *gin.Context) {
 
 }
 
-//*********************************************************************************************************
+//getStorage gets all the storage units the requesting user has
+func getStorage(requestUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
+	var storageList *storageDomain.Storages
+	var err fcerr.FCErr
+	fmt.Println("Running the getStorage function")
 
-//^^^^^^^^^Handler Section - Users^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	//accessToken := aR.AccessToken
+
+	storageList, err = service.GetAll(requestUser)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorage route")
+		fmt.Println("could not handle the GetStorage route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got some storage units!!! The first of which is:", (*storageList)[0])
+
+	marshaledStorageList, merr := json.Marshal(storageList)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
+	}
+	return marshaledStorageList, nil
+}
+
+//getStorageByID gets a particular storage unit the requesting user has
+func getStorageByID(pID int, requestingUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
+	var storage *storageDomain.Storage
+	var err fcerr.FCErr
+	fmt.Println("running non-gin getStorageByID func")
+
+	storage, err = service.GetByID(requestingUser, pID)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorageByID route")
+		fmt.Println("could not handle the GetStorageByID route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got a storage unit!!! It is:", storage.Title)
+
+	marshaledStorage, merr := json.Marshal(storage)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
+	}
+	return marshaledStorage, nil
+}
+
+//createStorage adds a storage unit to the list
+func createStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
+
+	fmt.Println("running the createStorage() non-handler function")
+
+	newStorage := &storageDomain.Storage{
+		Title:       aR.Title,
+		Description: aR.Description,
+	}
+
+	resultingStorage, err := service.Create(requestingUser, newStorage)
+
+	if err != nil || resultingStorage.StorageID == 0 {
+		return fcerr.NewInternalServerError("seems to have brokne")
+	}
+	return nil
+
+}
+
+//updateStorage takes a requesting user, and an API request along with the storage service to update the storage unit to the values contained in the apirequest
+func updateStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
+	fmt.Println("running the updateStorage() function")
+
+	storageID, err := strconv.Atoi(aR.StorageID)
+	if err != nil {
+		return fcerr.NewBadRequestError("Error when creating the storage unit.")
+	}
+
+	newStorage := &storageDomain.Storage{
+		StorageID:   storageID,
+		Title:       aR.Title,
+		Description: aR.Description,
+	}
+
+	err2 := service.Update(requestingUser, newStorage)
+
+	if err2 != nil {
+		return fcerr.NewInternalServerError("Error when updating the storage unit")
+	}
+	return nil
+}
+
+//deleteStorage takes a requesting user, and a storage ID along with the storage service to delete the storage unit with the personal id given
+func deleteStorage(requestingUser *userDomain.User, storageID int, service storage.Service) fcerr.FCErr {
+	fmt.Println("running the deleteStorage() function")
+	err := service.Delete(requestingUser, storageID)
+	if err != nil {
+		return fcerr.NewInternalServerError("Error when deleting the storage unit")
+	}
+	return nil
+}
+
+//*****************************************************************************************************************************************************
+
+//^^^^^^^^^Users Handler and helpers^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 func (h *handler) HandleUsersRequest(c *gin.Context) {
 	var aR apiRequest
 
@@ -372,7 +609,7 @@ func (h *handler) HandleUsersRequest(c *gin.Context) {
 	}
 }
 
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 //Ping is the test function to see if the server is being hit.
 func (h *handler) Ping(c *gin.Context) {
@@ -389,7 +626,7 @@ func (h *handler) Pong(c *gin.Context) {
 	})
 }
 
-//@@@@@@App Section@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@App Handlers@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 //Login displays a simple link that takes a user to the external google sign in flow.
 func (h *handler) Login(c *gin.Context) {
@@ -500,255 +737,7 @@ func (h *handler) LoginSuccess(c *gin.Context) {
 
 }
 
-//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-//^^^^^^^Dish Section ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//getDishes gets all the dishes the active user has
-func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
-	var dishes *dishDomain.Dishes
-	var err fcerr.FCErr
-	fmt.Println("Running the getDishes function")
-
-	//accessToken := aR.AccessToken
-
-	dishes, err = service.GetAll(requestUser)
-
-	if err != nil {
-		fmt.Println("could not handle the GetDishes route")
-		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
-	}
-
-	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
-
-	marshaledDishes, merr := json.Marshal(dishes)
-	if merr != nil {
-		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
-	}
-	return marshaledDishes, nil
-}
-
-//getDishByID gets a particular dish the requesting user has
-func getDishByID(pID int, requestingUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
-	var dish *dishDomain.Dish
-	var err fcerr.FCErr
-	fmt.Println("running non-gin getDishByID func")
-
-	//accessToken := aR.AccessToken
-
-	dish, err = service.GetByID(requestingUser, pID)
-
-	if err != nil {
-		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
-		fmt.Println("could not handle the GetDishes route")
-		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
-	}
-
-	fmt.Println("I think we got a dish!!! It is:", dish.Title)
-
-	marshaledDish, merr := json.Marshal(dish)
-	if merr != nil {
-		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
-	}
-	return marshaledDish, nil
-}
-
-func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
-	var dishes *dishDomain.Dishes
-	var err fcerr.FCErr
-	fmt.Println("Running the getExpiredDishes function")
-
-	//accessToken := aR.AccessToken
-
-	dishes, err = service.GetExpired(rUser)
-
-	if err != nil {
-		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
-		fmt.Println("could not handle the get expired dishes handle function")
-		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
-	}
-
-	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
-	fmt.Println("The length of the list we got is:", len(*dishes))
-
-	marshaledDishes, merr := json.Marshal(dishes)
-	if merr != nil {
-		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
-	}
-	return marshaledDishes, nil
-}
-
-//CreateDish adds a dish to the list
-func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
-
-	fmt.Println("running the createDish() non-handler function")
-
-	storageID, err := strconv.Atoi(aR.StorageID)
-	if err != nil {
-		return fcerr.NewBadRequestError("Error when creating the dish.")
-	}
-
-	newDish := &dishDomain.Dish{
-		StorageID:   storageID,
-		Title:       aR.Title,
-		Description: aR.Description,
-		Priority:    aR.Priority,
-		DishType:    aR.DishType,
-		Portions:    aR.Portions,
-	}
-	expireWindow := aR.ExpireWindow
-
-	resultingDish, err := service.Create(requestingUser, newDish, expireWindow)
-
-	if err != nil || resultingDish.DishID == 0 {
-		return fcerr.NewInternalServerError("seems to have brokne")
-	}
-	return nil
-
-}
-
-//updateDish takes a requesting user, and an API request along with the dish service to update the dish to the values contained in the apirequest
-func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
-	fmt.Println("running the updateDish() non-handler function")
-
-	storageID, err := strconv.Atoi(aR.StorageID)
-	if err != nil {
-		return fcerr.NewBadRequestError("Error when creating the dish.")
-	}
-
-	newDish := &dishDomain.Dish{
-		StorageID:   storageID,
-		Title:       aR.Title,
-		Description: aR.Description,
-		Priority:    aR.Priority,
-		DishType:    aR.DishType,
-		Portions:    aR.Portions,
-	}
-	expireWindow := aR.ExpireWindow
-
-	err2 := service.Update(requestingUser, newDish, expireWindow)
-
-	if err2 != nil {
-		return fcerr.NewInternalServerError("Error when updating the dish")
-	}
-	return nil
-}
-
-//deleteDish takes a requesting user, and a dish ID along with the dish service to delete the dish with the personal id given
-func deleteDish(requestingUser *userDomain.User, dishID int, service dish.Service) fcerr.FCErr {
-	fmt.Println("running the updateDish() non-handler function")
-	err := service.Delete(requestingUser, dishID)
-	if err != nil {
-		return fcerr.NewInternalServerError("Error when deleting the dish")
-	}
-	return nil
-}
-
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-//######Storage Section#############################################################################################
-
-//getStorage gets all the storage units the requesting user has
-func getStorage(requestUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
-	var storageList *storageDomain.Storages
-	var err fcerr.FCErr
-	fmt.Println("Running the getStorage function")
-
-	//accessToken := aR.AccessToken
-
-	storageList, err = service.GetAll(requestUser)
-
-	if err != nil {
-		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorage route")
-		fmt.Println("could not handle the GetStorage route")
-		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
-	}
-
-	fmt.Println("I think we got some storage units!!! The first of which is:", (*storageList)[0])
-
-	marshaledStorageList, merr := json.Marshal(storageList)
-	if merr != nil {
-		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
-	}
-	return marshaledStorageList, nil
-}
-
-//getStorageByID gets a particular storage unit the requesting user has
-func getStorageByID(pID int, requestingUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
-	var storage *storageDomain.Storage
-	var err fcerr.FCErr
-	fmt.Println("running non-gin getStorageByID func")
-
-	storage, err = service.GetByID(requestingUser, pID)
-
-	if err != nil {
-		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorageByID route")
-		fmt.Println("could not handle the GetStorageByID route")
-		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
-	}
-
-	fmt.Println("I think we got a storage unit!!! It is:", storage.Title)
-
-	marshaledStorage, merr := json.Marshal(storage)
-	if merr != nil {
-		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
-	}
-	return marshaledStorage, nil
-}
-
-//CreateDish adds a dish to the list
-func createStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
-
-	fmt.Println("running the createStorage() non-handler function")
-
-	newStorage := &storageDomain.Storage{
-		Title:       aR.Title,
-		Description: aR.Description,
-	}
-
-	resultingStorage, err := service.Create(requestingUser, newStorage)
-
-	if err != nil || resultingStorage.StorageID == 0 {
-		return fcerr.NewInternalServerError("seems to have brokne")
-	}
-	return nil
-
-}
-
-//updateStorage takes a requesting user, and an API request along with the storage service to update the storage unit to the values contained in the apirequest
-func updateStorage(requestingUser *userDomain.User, aR apiRequest, service storage.Service) fcerr.FCErr {
-	fmt.Println("running the updateStorage() function")
-
-	storageID, err := strconv.Atoi(aR.StorageID)
-	if err != nil {
-		return fcerr.NewBadRequestError("Error when creating the storage unit.")
-	}
-
-	newStorage := &storageDomain.Storage{
-		StorageID:   storageID,
-		Title:       aR.Title,
-		Description: aR.Description,
-	}
-
-	err2 := service.Update(requestingUser, newStorage)
-
-	if err2 != nil {
-		return fcerr.NewInternalServerError("Error when updating the storage unit")
-	}
-	return nil
-}
-
-//deleteStorage takes a requesting user, and a storage ID along with the storage service to delete the storage unit with the personal id given
-func deleteStorage(requestingUser *userDomain.User, storageID int, service storage.Service) fcerr.FCErr {
-	fmt.Println("running the deleteStorage() function")
-	err := service.Delete(requestingUser, storageID)
-	if err != nil {
-		return fcerr.NewInternalServerError("Error when deleting the storage unit")
-	}
-	return nil
-}
-
-//##################################################################################################################
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 func numGenerator() string {
 	n := make([]byte, 32)
