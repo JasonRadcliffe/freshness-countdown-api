@@ -138,11 +138,13 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			})
 			return
 		} else if dishIDParam != "" {
+			fmt.Println("hitting the getDish handler")
 			dishID, err := strconv.Atoi(dishIDParam)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
 			}
+			fmt.Println("dishID:" + strconv.Itoa(dishID))
 
 			marshaledDish, err := getDishByID(dishID, requestUser, h.dishService)
 			if err != nil {
