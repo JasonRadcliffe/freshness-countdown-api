@@ -124,6 +124,7 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 	}
 
 	dishIDParam := c.Param("dish_id")
+	fmt.Println("got the dishIDParam:" + dishIDParam)
 
 	switch aR.RequestType {
 
