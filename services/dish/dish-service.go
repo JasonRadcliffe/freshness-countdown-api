@@ -2,6 +2,7 @@ package dish
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
@@ -31,10 +32,12 @@ func NewService(repo db.Repository) Service {
 	}
 }
 
-//GetByID: (alexaid string, accessToken string, id int) takes an int id and sends it to the database repo for lookup.
+//GetByID(requestingUser *userDomain.User, pID int) takes an int id and sends it to the database repo for lookup.
 func (s *service) GetByID(requestingUser *userDomain.User, pID int) (*dish.Dish, fcerr.FCErr) {
+	fmt.Println("doing the service GetByID() with user:" + requestingUser.Email + "and dish id:" + strconv.Itoa(pID))
 	resultDish, err := s.repository.GetDishByID(requestingUser.UserID, pID)
 	if err != nil {
+		fmt.Println("s.repository.GetDishByID got an error:" + err.Message())
 		return nil, fcerr.NewInternalServerError("could not do the GetByID, possibly not in the db")
 	}
 	return resultDish, nil

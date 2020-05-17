@@ -574,30 +574,22 @@ func (h *handler) HandleUsersRequest(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	/*
-		requestUser, err := ValidateUser(h, aR)
-		if err != nil {
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-	*/
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
 
 	switch aR.RequestType {
-	case "POST":
-		fmt.Println("doing the createUsers() within the users request handler")
-		c.JSON(200, gin.H{
-			"message": []byte("Your user has been added to the database."),
-		})
-		return
 
 	case "PATCH":
-		fmt.Println("doing the updateUsers() within the users request handler")
+		fmt.Println("doing the updateUsers() within the users request handler for this user:", requestUser.Email)
 		c.JSON(200, gin.H{
 			"message": []byte("Your user has been updated in the database."),
 		})
 		return
 	case "DELETE":
-		fmt.Println("doing the deleteUsers() within the users request handler")
+		fmt.Println("doing the deleteUsers() within the users request handler for this user:", requestUser.Email)
 		c.JSON(200, gin.H{
 			"message": []byte("Your user has been removed from the database."),
 		})
