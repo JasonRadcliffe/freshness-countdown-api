@@ -321,8 +321,10 @@ func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fce
 		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
 	}
 
-	fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
 	fmt.Println("The length of the list we got is:", len(*dishes))
+	if len(*dishes) > 0 {
+		fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	}
 
 	marshaledDishes, merr := json.Marshal(dishes)
 	if merr != nil {
