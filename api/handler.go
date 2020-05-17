@@ -32,6 +32,9 @@ type Handler interface {
 	LoginSuccess(*gin.Context)
 
 	HandleDishesRequest(*gin.Context)
+	DishExpiresIn(*gin.Context)
+	DishExpiresBy(*gin.Context)
+
 	HandleStorageRequest(*gin.Context)
 	HandleUsersRequest(*gin.Context)
 }
@@ -156,19 +159,19 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 				"message": marshaledDish,
 			})
 			return
-		} else {
-			fmt.Println("got the getDishes route!!!")
-			marshaledDishList, err := getDishes(requestUser, h.dishService)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
+		}
 
-			c.JSON(200, gin.H{
-				"message": marshaledDishList,
-			})
+		fmt.Println("got the getDishes route!!!")
+		marshaledDishList, err := getDishes(requestUser, h.dishService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledDishList,
+		})
+		return
 
 	case "POST":
 		fmt.Println("doing the createDishes() within the dish request handler")
@@ -196,6 +199,10 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println("Successfully updated the dish in the database!")
+		c.JSON(200, gin.H{
+			"message": []byte("Your dish has been updated in the database."),
+		})
 	case "DELETE":
 		dishID, err := strconv.Atoi(dishIDParam)
 		if err != nil {
@@ -209,11 +216,43 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println("Successfully deleted the dish from the database!")
+		c.JSON(200, gin.H{
+			"message": []byte("Your dish has been deleted from the database."),
+		})
 
 	default:
 		c.AbortWithStatus(http.StatusNotImplemented)
 
 	}
+}
+
+func (h *handler) DishExpiresIn(c *gin.Context) {
+	expirationWindow := c.Param("duration")
+
+	if expirationWindow == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	fmt.Println("got the DishExpiresIn handler")
+	c.JSON(200, gin.H{
+		"message": []byte("not yet implemented the DishExpiresIn handler"),
+	})
+
+}
+
+func (h *handler) DishExpiresBy(c *gin.Context) {
+	date := c.Param("date")
+
+	if date == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	fmt.Println("got the DishExpiresBy handler")
+	c.JSON(200, gin.H{
+		"message": []byte("not yet implemented the DishExpiresBy handler"),
+	})
+
 }
 
 //getDishes gets all the dishes the active user has
