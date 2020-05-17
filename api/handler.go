@@ -31,9 +31,10 @@ type Handler interface {
 	Oauthlogin(*gin.Context)
 	LoginSuccess(*gin.Context)
 
-	HandleDishesRequest(*gin.Context)
-	DishExpiresIn(*gin.Context)
-	DishExpiresBy(*gin.Context)
+	GetDishes(*gin.Context)
+	HandleDishRequest(*gin.Context)
+	GetDishesExpired(*gin.Context)
+	GetDishesExpiresBy(*gin.Context)
 
 	HandleStorageRequest(*gin.Context)
 	HandleUsersRequest(*gin.Context)
@@ -105,7 +106,7 @@ func ValidateUser(h *handler, aR apiRequest) (*userDomain.User, fcerr.FCErr) {
 }
 
 //------Dishes Handler and Helpers---------------------------------------------------------------------------------------------------------------
-func (h *handler) HandleDishesRequest(c *gin.Context) {
+func (h *handler) GetDishes(c *gin.Context) {
 	var aR apiRequest
 
 	if err := c.ShouldBindJSON(&aR); err != nil {
@@ -123,29 +124,98 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		return
 	}
 
-	dishIDParam := c.Param("dish_id")
-	fmt.Println("got the dishIDParam:" + dishIDParam)
+	if aR.RequestType == "GET" {
+		fmt.Println("got the getDishes route!!!")
+		marshaledDishList, err := getDishes(requestUser, h.dishService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledDishList,
+		})
+		return
+	}
+	c.AbortWithStatus(http.StatusNotImplemented)
+}
+
+func (h *handler) GetDishesExpired(c *gin.Context) {
+	var aR apiRequest
+
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	if aR.RequestType == "GET" {
+		fmt.Println("got the get expired dishes route!!!")
+		marshaledDishList, err := getExpiredDishes(requestUser, h.dishService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledDishList,
+		})
+		return
+	}
+	c.AbortWithStatus(http.StatusNotImplemented)
+}
+
+func (h *handler) GetDishesExpiresBy(c *gin.Context) {
+	date := c.Param("date")
+
+	if date == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	fmt.Println("got the get dishes expires by date handler")
+	c.JSON(200, gin.H{
+		"message": []byte("not yet implemented the DishExpiresBy handler"),
+	})
+
+}
+
+func (h *handler) HandleDishRequest(c *gin.Context) {
+	var aR apiRequest
+
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	dishIDParam := c.Param("p_id")
+	fmt.Println("got the p_id param:" + dishIDParam)
 
 	switch aR.RequestType {
 
 	case "GET":
-		if dishIDParam == "expired" {
-			fmt.Println("got the post request for GetExpired!")
-			marshaledDishList, err := getExpiredDishes(requestUser, h.dishService)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-
-			c.JSON(200, gin.H{
-				"message": marshaledDishList,
-			})
-			return
-		} else if dishIDParam != "" {
-			fmt.Println("hitting the getDish handler")
+		if dishIDParam != "" {
 			dishID, err := strconv.Atoi(dishIDParam)
 			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
+				c.AbortWithStatus(http.StatusBadRequest)
 				return
 			}
 			fmt.Println("dishID:" + strconv.Itoa(dishID))
@@ -162,20 +232,11 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 			return
 		}
 
-		fmt.Println("got the getDishes route!!!")
-		marshaledDishList, err := getDishes(requestUser, h.dishService)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		c.JSON(200, gin.H{
-			"message": marshaledDishList,
-		})
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 
 	case "POST":
-		fmt.Println("doing the createDishes() within the dish request handler")
+		fmt.Println("doing the createDish() within the dish request handler")
 		err := createDish(requestUser, aR, h.dishService)
 		if err != nil {
 			c.AbortWithStatus(err.Status())
@@ -226,34 +287,6 @@ func (h *handler) HandleDishesRequest(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotImplemented)
 
 	}
-}
-
-func (h *handler) DishExpiresIn(c *gin.Context) {
-	expirationWindow := c.Param("duration")
-
-	if expirationWindow == "" {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	fmt.Println("got the DishExpiresIn handler")
-	c.JSON(200, gin.H{
-		"message": []byte("not yet implemented the DishExpiresIn handler"),
-	})
-
-}
-
-func (h *handler) DishExpiresBy(c *gin.Context) {
-	date := c.Param("date")
-
-	if date == "" {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-	fmt.Println("got the DishExpiresBy handler")
-	c.JSON(200, gin.H{
-		"message": []byte("not yet implemented the DishExpiresBy handler"),
-	})
-
 }
 
 //getDishes gets all the dishes the active user has

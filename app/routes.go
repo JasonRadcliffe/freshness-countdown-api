@@ -4,10 +4,10 @@ func mapRoutes() {
 	router.GET("/ping", apiHandler.Ping)
 	router.GET("/pong", apiHandler.Pong)
 
-	router.POST("/dishes", apiHandler.HandleDishesRequest)
-	router.POST("/dishes/:dish_id", apiHandler.HandleDishesRequest)
-	//router.POST("/dishes/expiresin/:duration", apiHandler.DishExpiresIn)
-	//router.POST("/dishes/expiresby/:date", apiHandler.DishExpiresBy)
+	router.POST("/dishes", apiHandler.GetDishes)
+	router.POST("/dishes/dish/:p_id", apiHandler.HandleDishRequest)
+	router.POST("/dishes/expired", apiHandler.GetDishesExpired)
+	router.POST("/dishes/expiresby/:date", apiHandler.GetDishesExpiresBy)
 
 	router.POST("/storage", apiHandler.HandleStorageRequest)
 
