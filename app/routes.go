@@ -5,6 +5,7 @@ func mapRoutes() {
 	router.GET("/pong", apiHandler.Pong)
 
 	router.POST("/dishes", apiHandler.HandleDishesRequest)
+	router.POST("/dishes/:dish_id", apiHandler.HandleDishesRequest)
 
 	router.POST("/storage", apiHandler.HandleStorageRequest)
 
