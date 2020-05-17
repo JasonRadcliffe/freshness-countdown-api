@@ -5,6 +5,7 @@ func mapRoutes() {
 	router.GET("/pong", apiHandler.Pong)
 
 	router.POST("/dishes", apiHandler.GetDishes)
+	router.POST("/dishes/dish", apiHandler.HandleDishRequest)
 	router.POST("/dishes/dish/:p_id", apiHandler.HandleDishRequest)
 	router.POST("/dishes/expired", apiHandler.GetDishesExpired)
 	router.POST("/dishes/expiresby/:date", apiHandler.GetDishesExpiresBy)
