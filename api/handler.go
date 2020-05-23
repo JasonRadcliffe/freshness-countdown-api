@@ -161,7 +161,7 @@ func (h *handler) GetDishesExpired(c *gin.Context) {
 
 	if aR.RequestType == "GET" {
 		fmt.Println("got the get expired dishes route!!!")
-		marshaledDishList, err := getExpiredDishes(requestUser, h.dishService)
+		marshaledDishList, err := getDishesExpired(requestUser, h.dishService)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
