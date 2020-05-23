@@ -34,7 +34,7 @@ type Handler interface {
 	GetDishes(*gin.Context)
 	HandleDishRequest(*gin.Context)
 	GetDishesExpired(*gin.Context)
-	GetDishesExpiresBy(*gin.Context)
+	GetDishesExpiredBy(*gin.Context)
 
 	HandleStorageRequest(*gin.Context)
 	HandleUsersRequest(*gin.Context)
