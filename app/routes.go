@@ -8,7 +8,7 @@ func mapRoutes() {
 	router.POST("/dishes/dish", apiHandler.HandleDishRequest)
 	router.POST("/dishes/dish/:p_id", apiHandler.HandleDishRequest)
 	router.POST("/dishes/expired", apiHandler.GetDishesExpired)
-	router.POST("/dishes/expiresby/:date", apiHandler.GetDishesExpiresBy)
+	router.POST("/dishes/expiredby/", apiHandler.GetDishesExpiredBy)
 
 	router.POST("/storage", apiHandler.HandleStorageRequest)
 
