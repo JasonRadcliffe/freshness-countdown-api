@@ -378,19 +378,19 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 		return fcerr
 	}
 
+	returnedDish, err := repo.GetDishByID(userID, pID)
+	if err == nil {
+		fmt.Println("Expected an error here, but didn't get one!! Dish Title:" + returnedDish.Title)
+		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database, could not verify it was deleted.")
+		return fcerr
+	}
+
 	decrementSomeDishesQuery := fmt.Sprintf(DecrementSomeDishesBase, userID, pDSstr)
 	fmt.Println("about to run this query on the db:", decrementSomeDishesQuery)
 	_, err3 := repo.db.Query(decrementSomeDishesQuery)
 	if err3 != nil {
 		fmt.Println("got an error while trying to decrement some dishes:" + err3.Error())
 		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database")
-		return fcerr
-	}
-
-	returnedDish, err := repo.GetDishByID(userID, pID)
-	if err == nil {
-		fmt.Println("Expected an error here, but didn't get one!! Dish Title:" + returnedDish.Title)
-		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database, could not verify it was deleted.")
 		return fcerr
 	}
 
