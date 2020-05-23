@@ -257,7 +257,7 @@ func (h *handler) HandleDishRequest(c *gin.Context) {
 		fmt.Println("got the dish update method for dish number:", dishID)
 		err2 := updateDish(requestUser, aR, h.dishService)
 		if err2 != nil {
-			fmt.Println("Got an error when doing the update dish route")
+			fmt.Println("Got an error when doing the update dish route:" + err2.Message())
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
@@ -274,7 +274,7 @@ func (h *handler) HandleDishRequest(c *gin.Context) {
 		fmt.Println("got the dish delete method for dish number:", dishID)
 		err2 := deleteDish(requestUser, dishID, h.dishService)
 		if err2 != nil {
-			fmt.Println("Got an error when doing the update dish route")
+			fmt.Println("Got an error when doing the delete dish route")
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
