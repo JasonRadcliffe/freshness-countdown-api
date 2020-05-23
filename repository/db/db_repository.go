@@ -359,14 +359,8 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 		return fcerr.NewInternalServerError("Error when Deleting the dish")
 	}
 
-	pDSstr := ""
-	for i := pID + 1; i <= personalDishCount; i++ {
-		if i == personalDishCount {
-			pDSstr = pDSstr + strconv.Itoa(i)
-		} else {
-			pDSstr = pDSstr + strconv.Itoa(i) + ","
-		}
-
+	if pID > personalDishCount {
+		return fcerr.NewBadRequestError("Could not delete a dish that doesn't exist")
 	}
 
 	deleteDishQuery := fmt.Sprintf(DeleteDishBase, userID, pID)
@@ -385,60 +379,30 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 		return fcerr
 	}
 
-	decrementSomeDishesQuery := fmt.Sprintf(DecrementSomeDishesBase, userID, pDSstr)
-	fmt.Println("about to run this query on the db:", decrementSomeDishesQuery)
-	_, err3 := repo.db.Query(decrementSomeDishesQuery)
-	if err3 != nil {
-		fmt.Println("got an error while trying to decrement some dishes:" + err3.Error())
-		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database")
-		return fcerr
+	if pID != personalDishCount {
+		//Dish was in the middle of the list somewhere - shift the second half of the list up
+		pDSstr := ""
+		for i := pID + 1; i <= personalDishCount; i++ {
+			if i == personalDishCount {
+				pDSstr = pDSstr + strconv.Itoa(i)
+			} else {
+				pDSstr = pDSstr + strconv.Itoa(i) + ","
+			}
+
+		}
+
+		decrementSomeDishesQuery := fmt.Sprintf(DecrementSomeDishesBase, userID, pDSstr)
+		fmt.Println("about to run this query on the db:", decrementSomeDishesQuery)
+		_, err3 := repo.db.Query(decrementSomeDishesQuery)
+		if err3 != nil {
+			fmt.Println("got an error while trying to decrement some dishes:" + err3.Error())
+			fcerr := fcerr.NewInternalServerError("Error while cleaning up the remaining dishes - however it appears the dish was successfully deleted")
+			return fcerr
+		}
 	}
 
 	return nil
 }
-
-/* I don't think we need GetUsers() for anything...
-//GetUsers queries the database and returns a slice of User objects
-func (repo *repository) GetUsers() (*user.Users, fcerr.FCErr) {
-	fmt.Println("now at the beginning of the db_repository GetUsers()")
-	var resultingUsers user.Users
-	getUsersQuery := fmt.Sprintf(GetUsersBase)
-	rows, err := repo.db.Query(getUsersQuery)
-	fmt.Println("now after doing the Query:", getUsersQuery)
-	if err != nil {
-		fmt.Println("got an error on the Query:", err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while retrieving users from the database")
-		return nil, fcerr
-	}
-	defer rows.Close()
-	fmt.Println("now about to check the rows returned:")
-	count := 0
-	for rows.Next() {
-		count++
-		var currentUser user.User
-		fmt.Println("Inside the result set loop. currentDish:", currentUser)
-		err := rows.Scan(&currentUser.UserID, &currentUser.Email, &currentUser.FirstName, &currentUser.LastName, &currentUser.FullName,
-			&currentUser.CreatedDate, &currentUser.AccessToken, &currentUser.RefreshToken, &currentUser.AlexaUserID, &currentUser.Admin, &currentUser.TempMatch)
-		if err != nil {
-			fmt.Println("got an error from the rows.Scan.")
-			fmt.Println("&currentUser.UserID:", currentUser.UserID)
-			fmt.Println("&currentUser.TempMatch:", currentUser.TempMatch)
-			fcerr := fcerr.NewInternalServerError("Error while scanning the result from the database")
-			return nil, fcerr
-		}
-		fmt.Println("now after the current user scanned. currentUser:", currentUser)
-		resultingUsers = append(resultingUsers, currentUser)
-
-	}
-	if count < 1 {
-		fcerr := fcerr.NewNotFoundError("Database could not find any users")
-		fmt.Println("Database could not find any users")
-		return nil, fcerr
-	}
-
-	return &resultingUsers, nil
-}
-*/
 
 //GetUserByID(id int) gets a user from the database with the given ID.
 func (repo *repository) GetUserByID(id int) (*user.User, fcerr.FCErr) {
