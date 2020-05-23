@@ -398,23 +398,26 @@ func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Ser
 //updateDish takes a requesting user, and an API request along with the dish service to update the dish to the values contained in the apirequest
 func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
 	fmt.Println("running the updateDish() non-handler function")
-
-	storageID, err := strconv.Atoi(aR.StorageID)
-	if err != nil {
-		return fcerr.NewBadRequestError("Error when creating the dish.")
-	}
+	fmt.Println("Got this ar storageID:" + aR.StorageID)
 
 	newDish := &dishDomain.Dish{
-		StorageID:   storageID,
 		Title:       aR.Title,
 		Description: aR.Description,
 		Priority:    aR.Priority,
 		DishType:    aR.DishType,
 		Portions:    aR.Portions,
 	}
-	expireWindow := aR.ExpireWindow
 
-	err2 := service.Update(requestingUser, newDish, expireWindow)
+	if aR.StorageID != "" {
+		storageID, err := strconv.Atoi(aR.StorageID)
+		if err != nil {
+			return fcerr.NewBadRequestError("Could not recognize the Storage ID value")
+		}
+		newDish.StorageID = storageID
+	}
+
+	//aR.ExpireWindow could be "" if the user has not changed - Service will handle this case as it parses
+	err2 := service.Update(requestingUser, newDish, aR.ExpireWindow)
 
 	if err2 != nil {
 		return fcerr.NewInternalServerError("Error when updating the dish")
