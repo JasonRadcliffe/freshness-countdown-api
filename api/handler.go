@@ -220,7 +220,7 @@ func (h *handler) HandleDishRequest(c *gin.Context) {
 			}
 			fmt.Println("dishID:" + strconv.Itoa(dishID))
 
-			marshaledDish, err := getDishByID(dishID, requestUser, h.dishService)
+			marshaledDish, err := getDishByID(requestUser, dishID, h.dishService)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
@@ -255,7 +255,7 @@ func (h *handler) HandleDishRequest(c *gin.Context) {
 			return
 		}
 		fmt.Println("got the dish update method for dish number:", dishID)
-		err2 := updateDish(requestUser, aR, h.dishService)
+		err2 := updateDish(requestUser, dishID, aR, h.dishService)
 		if err2 != nil {
 			fmt.Println("Got an error when doing the update dish route:" + err2.Message())
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -314,7 +314,7 @@ func getDishes(requestUser *userDomain.User, service dish.Service) ([]byte, fcer
 }
 
 //getDishByID gets a particular dish the requesting user has
-func getDishByID(pID int, requestingUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
+func getDishByID(requestingUser *userDomain.User, pID int, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dish *dishDomain.Dish
 	var err fcerr.FCErr
 	fmt.Println("running non-gin getDishByID func")
@@ -395,17 +395,27 @@ func createDish(requestingUser *userDomain.User, aR apiRequest, service dish.Ser
 
 }
 
-//updateDish takes a requesting user, and an API request along with the dish service to update the dish to the values contained in the apirequest
-func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) fcerr.FCErr {
+//updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Service) takes a requesting user, and an API request along with the dish service to update the dish to the values contained in the apirequest
+func updateDish(requestingUser *userDomain.User, pID int, aR apiRequest, service dish.Service) fcerr.FCErr {
 	fmt.Println("running the updateDish() non-handler function")
 	fmt.Println("Got this ar storageID:" + aR.StorageID)
 
-	newDish := &dishDomain.Dish{
-		Title:       aR.Title,
-		Description: aR.Description,
-		Priority:    aR.Priority,
-		DishType:    aR.DishType,
-		Portions:    aR.Portions,
+	marshaledExistingDish, err := getDishByID(requestingUser, pID, service)
+	if err != nil {
+		return fcerr.NewBadRequestError("Can not update a dish that does not exist.")
+	}
+
+	var existingDish dishDomain.Dish
+	json.Unmarshal(marshaledExistingDish, &existingDish)
+
+	newDish := existingDish
+
+	if aR.Title != "" {
+		newDish.Title = aR.Title
+	}
+
+	if aR.Description != "" {
+		newDish.Description = aR.Description
 	}
 
 	if aR.StorageID != "" {
@@ -416,8 +426,8 @@ func updateDish(requestingUser *userDomain.User, aR apiRequest, service dish.Ser
 		newDish.StorageID = storageID
 	}
 
-	//aR.ExpireWindow could be "" if the user has not changed - Service will handle this case as it parses
-	err2 := service.Update(requestingUser, newDish, aR.ExpireWindow)
+	//aR.ExpireWindow could be "" if the user has not changed it - the Service will handle this case as it parses
+	err2 := service.Update(requestingUser, &newDish, aR.ExpireWindow)
 
 	if err2 != nil {
 		return fcerr.NewInternalServerError("Error when updating the dish")
