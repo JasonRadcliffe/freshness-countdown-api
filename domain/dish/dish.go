@@ -54,9 +54,9 @@ func (d *Dish) WillExpireBy(dateStr string) (bool, fcerr.FCErr) {
 		return false, fcerr.NewInternalServerError("Encountered a dish without a valid expiration date")
 	}
 
-	checkTime, err := time.Parse("2006-01-02T15:04", dateStr)
+	checkTime, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		fmt.Println("WillExpireBy was passed an invalid expiration string")
+		fmt.Println("WillExpireBy was passed an invalid expiration string:" + dateStr)
 		return false, fcerr.NewBadRequestError("dish method was passed an invalid expiration string")
 	}
 
