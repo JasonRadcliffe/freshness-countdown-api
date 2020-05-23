@@ -63,6 +63,7 @@ type apiRequest struct {
 	Title        string `json:"title"`
 	Description  string `json:"description"`
 	ExpireWindow string `json:"expireWindow"`
+	ExpireDate   string `json:"expireDate"`
 	Priority     string `json:"priority"`
 	DishType     string `json:"dishType"`
 	Portions     int    `json:"portions"`
@@ -174,18 +175,44 @@ func (h *handler) GetDishesExpired(c *gin.Context) {
 	c.AbortWithStatus(http.StatusNotImplemented)
 }
 
-func (h *handler) GetDishesExpiresBy(c *gin.Context) {
-	date := c.Param("date")
+func (h *handler) GetDishesExpiredBy(c *gin.Context) {
+	var aR apiRequest
 
-	if date == "" {
-		c.AbortWithStatus(http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("got the get dishes expires by date handler")
-	c.JSON(200, gin.H{
-		"message": []byte("not yet implemented the DishExpiresBy handler"),
-	})
 
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	if aR.RequestType == "GET" {
+		fmt.Println("got the get dishes Expired by date route!!!")
+
+		if aR.ExpireDate == "" {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		marshaledDishList, err := getDishesExpiredBy(requestUser, aR.ExpireDate, h.dishService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledDishList,
+		})
+		return
+	}
+	c.AbortWithStatus(http.StatusNotImplemented)
 }
 
 func (h *handler) HandleDishRequest(c *gin.Context) {
@@ -338,11 +365,11 @@ func getDishByID(requestingUser *userDomain.User, pID int, service dish.Service)
 	return marshaledDish, nil
 }
 
-//getExpiredDishes gets all the dishes the active user has that have already expired
-func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
+//getDishesExpired gets all the dishes the active user has that have already expired
+func getDishesExpired(rUser *userDomain.User, service dish.Service) ([]byte, fcerr.FCErr) {
 	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
-	fmt.Println("Running the getExpiredDishes function")
+	fmt.Println("Running the getDishesExpired function")
 
 	//accessToken := aR.AccessToken
 
@@ -352,6 +379,31 @@ func getExpiredDishes(rUser *userDomain.User, service dish.Service) ([]byte, fce
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetDishes route")
 		fmt.Println("could not handle the get expired dishes handle function")
 		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("The length of the list we got is:", len(*dishes))
+	if len(*dishes) > 0 {
+		fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	}
+
+	marshaledDishes, merr := json.Marshal(dishes)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
+	}
+	return marshaledDishes, nil
+}
+
+//getDishesExpiresBy gets all the dishes the active user has that have already expired
+func getDishesExpiredBy(rUser *userDomain.User, checkDateStr string, service dish.Service) ([]byte, fcerr.FCErr) {
+	var dishes *dishDomain.Dishes
+	var err fcerr.FCErr
+	fmt.Println("Running the getDishesExpiresBy function")
+
+	dishes, err = service.GetExpiredByDate(rUser, checkDateStr)
+
+	if err != nil {
+		fmt.Println("could not handle the get expired dishes handle function")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetExpiredBy")
 	}
 
 	fmt.Println("The length of the list we got is:", len(*dishes))

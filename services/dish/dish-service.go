@@ -15,6 +15,7 @@ import (
 type Service interface {
 	GetByID(*userDomain.User, int) (*dish.Dish, fcerr.FCErr)
 	GetExpired(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
+	GetExpiredByDate(*userDomain.User, string) (*dish.Dishes, fcerr.FCErr)
 	GetAll(*userDomain.User) (*dish.Dishes, fcerr.FCErr)
 	Create(*userDomain.User, *dish.Dish, string) (*dish.Dish, fcerr.FCErr)
 	Update(*userDomain.User, *dish.Dish, string) fcerr.FCErr
@@ -43,7 +44,7 @@ func (s *service) GetByID(requestingUser *userDomain.User, pID int) (*dish.Dish,
 	return resultDish, nil
 }
 
-//GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
+//GetAll(requestUser *userDomain.User) gets all the dishes for the requestUser
 func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
 	resultDishes, err := s.repository.GetDishes(requestUser.UserID)
 	if err != nil {
@@ -54,7 +55,7 @@ func (s *service) GetAll(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCEr
 
 }
 
-//GetAll: (alexaid string, accessToken string) - gets all the dishes... if the user is admin
+//GetExpired(requestUser *userDomain.User) gets all the dishes for the requestUser that are already expired
 func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.FCErr) {
 	//var cDish dish.Dish
 	var expiredDishes dish.Dishes
@@ -78,13 +79,38 @@ func (s *service) GetExpired(requestUser *userDomain.User) (*dish.Dishes, fcerr.
 	}
 
 	return &expiredDishes, nil
+}
 
+//GetExpiredByDate(requestUser *userDomain.User, expireDateStr string) gets all the dishes for the requestUser that are going to expire by the given date
+func (s *service) GetExpiredByDate(requestUser *userDomain.User, expireDateStr string) (*dish.Dishes, fcerr.FCErr) {
+	var expiredDishes dish.Dishes
+	resultDishes, err := s.repository.GetDishes(requestUser.UserID)
+
+	if err != nil {
+		return nil, fcerr.NewInternalServerError("Could not retrieve the dishes")
+	}
+
+	for i, d := range *resultDishes {
+		fmt.Println(i, "In the for each loop of the GetExpiredByDate!! dish Expire date:", d.ExpireDate)
+		check, err := d.WillExpireBy(expireDateStr)
+		if err != nil {
+			continue
+		}
+		if check == true {
+			fmt.Println("Got a true - an expired dish!", d.Title, d.ExpireDate)
+			expiredDishes = append(expiredDishes, d)
+		}
+
+	}
+
+	return &expiredDishes, nil
 }
 
 func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) (*dish.Dish, fcerr.FCErr) {
 
 	//TODO: write conversions between Alexa duration and time.Now
 	expireDate := "2020-10-13T08:00"
+
 	datePattern := "2006-01-02T15:04:05"
 	timeNow := time.Now().In(time.UTC)
 	createdDate := timeNow.Format(datePattern)

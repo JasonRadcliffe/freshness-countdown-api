@@ -106,7 +106,7 @@ func TestAPIHandler_getExpiredDishes(t *testing.T) {
 
 	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishesBase, rUser.UserID)).WillReturnRows(rows)
 
-	resultingDishesMarshaled, err := getExpiredDishes(rUser, dS)
+	resultingDishesMarshaled, err := getDishesExpired(rUser, dS)
 	var resultingDishes dishDomain.Dishes
 	jsonErr := json.Unmarshal(resultingDishesMarshaled, &resultingDishes)
 

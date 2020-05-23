@@ -45,3 +45,23 @@ func (d *Dish) IsExpired() (bool, fcerr.FCErr) {
 	}
 	return true, nil
 }
+
+//WillExpireBy will check the ExpireDate field against the given date/time, and return true if the dish will be expired
+func (d *Dish) WillExpireBy(dateStr string) (bool, fcerr.FCErr) {
+	dishExpireTime, err := time.Parse("2006-01-02T15:04", d.ExpireDate)
+	if err != nil {
+		fmt.Println("The dish did not have a valid expiration date. Error:", err.Error())
+		return false, fcerr.NewInternalServerError("Encountered a dish without a valid expiration date")
+	}
+
+	checkTime, err := time.Parse("2006-01-02T15:04", dateStr)
+	if err != nil {
+		fmt.Println("WillExpireBy was passed an invalid expiration string")
+		return false, fcerr.NewBadRequestError("dish method was passed an invalid expiration string")
+	}
+
+	if dishExpireTime.After(checkTime) {
+		return false, nil
+	}
+	return true, nil
+}
