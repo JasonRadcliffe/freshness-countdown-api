@@ -90,7 +90,7 @@ const UpdateStorageBase = `UPDATE storage SET personal_id = %d, title = "%s", de
 const DeleteStorageBase = `DELETE FROM storage WHERE user_id = %d AND personal_id=%d`
 
 //GetStorageDishesBase can be used with fmt.Sprintf() to get the Query for GetStorageDishes().
-const GetStorageDishesBase = `SELECT * FROM dish WHERE user_id = %d AND personal_id = %d`
+const GetStorageDishesBase = `SELECT * FROM dish WHERE user_id = %d AND storage_id = %d`
 
 //Repository interface is a contract for all the methods contained by this db.Repository object.
 type Repository interface {
