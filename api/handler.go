@@ -36,7 +36,10 @@ type Handler interface {
 	GetDishesExpired(*gin.Context)
 	GetDishesExpiredBy(*gin.Context)
 
+	GetStorages(*gin.Context)
 	HandleStorageRequest(*gin.Context)
+	GetStorageDishes(*gin.Context)
+
 	HandleUsersRequest(*gin.Context)
 }
 
@@ -601,6 +604,100 @@ func (h *handler) HandleStorageRequest(c *gin.Context) {
 
 }
 
+func (h *handler) GetStorageDishes(c *gin.Context) {
+	var aR apiRequest
+
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	storageIDParam := c.Param("p_id")
+
+	switch aR.RequestType {
+
+	case "GET":
+		if storageIDParam == "" {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		fmt.Println("GOT THE get storage dishes route for storage id: " + storageIDParam)
+		storageID, err := strconv.Atoi(storageIDParam)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		marshaledDishList, err := getStorageDishes(requestUser, storageID, h.storageService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledDishList,
+		})
+		return
+
+	default:
+		c.AbortWithStatus(http.StatusNotImplemented)
+
+	}
+
+}
+
+func (h *handler) GetStorages(c *gin.Context) {
+	var aR apiRequest
+
+	if err := c.ShouldBindJSON(&aR); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if aR.AlexaUserID == "" && aR.AccessToken == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	requestUser, err := ValidateUser(h, aR)
+	if err != nil {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	switch aR.RequestType {
+
+	case "GET":
+		fmt.Println("GOT THE GETStorages ROUTE!!!")
+
+		marshaledStorages, err := getStorage(requestUser, h.storageService)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message": marshaledStorages,
+		})
+		return
+
+	default:
+		c.AbortWithStatus(http.StatusNotImplemented)
+
+	}
+
+}
+
 //getStorage gets all the storage units the requesting user has
 func getStorage(requestUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
 	var storageList *storageDomain.Storages
@@ -628,6 +725,29 @@ func getStorage(requestUser *userDomain.User, service storage.Service) ([]byte, 
 
 //getStorageByID gets a particular storage unit the requesting user has
 func getStorageByID(pID int, requestingUser *userDomain.User, service storage.Service) ([]byte, fcerr.FCErr) {
+	var storage *storageDomain.Storage
+	var err fcerr.FCErr
+	fmt.Println("running non-gin getStorageByID func")
+
+	storage, err = service.GetByID(requestingUser, pID)
+
+	if err != nil {
+		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorageByID route")
+		fmt.Println("could not handle the GetStorageByID route")
+		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+	}
+
+	fmt.Println("I think we got a storage unit!!! It is:", storage.Title)
+
+	marshaledStorage, merr := json.Marshal(storage)
+	if merr != nil {
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
+	}
+	return marshaledStorage, nil
+}
+
+//getStorageDishes(requestingUser *userDomain.User, pID int, service storage.Service) gets all the dishes the requsting user has in the given storage unit
+func getStorageDishes(requestingUser *userDomain.User, pID int, service storage.Service) ([]byte, fcerr.FCErr) {
 	var storage *storageDomain.Storage
 	var err fcerr.FCErr
 	fmt.Println("running non-gin getStorageByID func")

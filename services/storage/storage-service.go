@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 
+	dishDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/storage"
 	userDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/user"
 	"github.com/jasonradcliffe/freshness-countdown-api/fcerr"
@@ -12,6 +13,7 @@ import (
 //Service is the interface that defines the contract for a storage service.
 type Service interface {
 	GetByID(*userDomain.User, int) (*storage.Storage, fcerr.FCErr)
+	GetDishesByID(*userDomain.User, int) (*dishDomain.Dishes, fcerr.FCErr)
 	GetAll(*userDomain.User) (*storage.Storages, fcerr.FCErr)
 	Create(*userDomain.User, *storage.Storage) (*storage.Storage, fcerr.FCErr)
 	Update(*userDomain.User, *storage.Storage) fcerr.FCErr
@@ -36,6 +38,15 @@ func (s *service) GetByID(requestingUser *userDomain.User, pID int) (*storage.St
 		return nil, fcerr.NewInternalServerError("could not do the GetByID, possibly not in the db")
 	}
 	return resultStorage, nil
+}
+
+//GetDishesByID(requestingUser *userDomain.User, pID int) gets all the dishes that belong to the requesting user in the given storage unit
+func (s *service) GetDishesByID(requestingUser *userDomain.User, pID int) (*dishDomain.Dishes, fcerr.FCErr) {
+	resultDishes, err := s.repository.GetStorageDishes(requestingUser.UserID, pID)
+	if err != nil {
+		return nil, fcerr.NewInternalServerError("could not do the getstoragedishes")
+	}
+	return resultDishes, nil
 }
 
 //GetAll: (alexaid string, accessToken string) - gets all the storage units that the requesting user has

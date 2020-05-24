@@ -10,7 +10,10 @@ func mapRoutes() {
 	router.POST("/dishes/expired", apiHandler.GetDishesExpired)
 	router.POST("/dishes/expiredby/", apiHandler.GetDishesExpiredBy)
 
-	router.POST("/storage", apiHandler.HandleStorageRequest)
+	router.POST("/storage", apiHandler.GetStorages)
+	router.POST("/storage/storage", apiHandler.HandleStorageRequest)
+	router.POST("/storage/storage/:p_id", apiHandler.HandleStorageRequest)
+	router.POST("/storage/storage/:p_id/dishes", apiHandler.GetStorageDishes)
 
 	router.POST("/users", apiHandler.HandleUsersRequest)
 
