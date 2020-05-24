@@ -851,7 +851,14 @@ func (repo *repository) DeleteStorage(userID int, pID int) fcerr.FCErr {
 func (repo *repository) GetStorageDishes(userID int, storagePID int) (*dish.Dishes, fcerr.FCErr) {
 	fmt.Println("now at the beginning of the db_repository GetStorageDishes()")
 	var resultDishes dish.Dishes
-	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, userID, storagePID)
+
+	resultStorage, storageErr := repo.GetStorageByID(userID, storagePID)
+	if storageErr != nil {
+		fmt.Println("could not find a storage unit belonging to user:" + strconv.Itoa(userID) + " with the personal storage id:" + strconv.Itoa(storagePID))
+		return nil, fcerr.NewInternalServerError("Could not find such a storage unit")
+	}
+
+	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, userID, resultStorage.StorageID)
 	rows, err := repo.db.Query(getStorageDishesQuery)
 	fmt.Println("now after doing the Query:", getStorageDishesQuery)
 	if err != nil {
