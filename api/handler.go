@@ -747,26 +747,29 @@ func getStorageByID(pID int, requestingUser *userDomain.User, service storage.Se
 }
 
 //getStorageDishes(requestingUser *userDomain.User, pID int, service storage.Service) gets all the dishes the requsting user has in the given storage unit
-func getStorageDishes(requestingUser *userDomain.User, pID int, service storage.Service) ([]byte, fcerr.FCErr) {
-	var storage *storageDomain.Storage
+func getStorageDishes(requestingUser *userDomain.User, pID int, storageService storage.Service) ([]byte, fcerr.FCErr) {
+	var dishes *dishDomain.Dishes
 	var err fcerr.FCErr
-	fmt.Println("running non-gin getStorageByID func")
+	fmt.Println("running non-gin getStorageDishes func")
 
-	storage, err = service.GetByID(requestingUser, pID)
+	dishes, err = storageService.GetDishesByID(requestingUser, pID)
 
 	if err != nil {
 		//fcerr := fcerr.NewInternalServerError("could not handle the GetStorageByID route")
-		fmt.Println("could not handle the GetStorageByID route")
-		return nil, fcerr.NewInternalServerError("unsuccessful at service.GetAll")
+		fmt.Println("could not handle the getStorageDishes non-gin func")
+		return nil, fcerr.NewInternalServerError("unsuccessful at storageService.GetDishesByID")
 	}
 
-	fmt.Println("I think we got a storage unit!!! It is:", storage.Title)
+	fmt.Println("The length of the list we got is:", len(*dishes))
+	if len(*dishes) > 0 {
+		fmt.Println("I think we got some dishes!!! The first of which is:", (*dishes)[0])
+	}
 
-	marshaledStorage, merr := json.Marshal(storage)
+	marshaledDishes, merr := json.Marshal(dishes)
 	if merr != nil {
-		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the storage units")
+		return nil, fcerr.NewInternalServerError("JSON Error - Could not marshal the dishes")
 	}
-	return marshaledStorage, nil
+	return marshaledDishes, nil
 }
 
 //createStorage adds a storage unit to the list
