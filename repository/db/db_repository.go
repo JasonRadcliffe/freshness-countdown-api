@@ -858,7 +858,7 @@ func (repo *repository) GetStorageDishes(userID int, storagePID int) (*dish.Dish
 		return nil, fcerr.NewInternalServerError("Could not find such a storage unit")
 	}
 
-	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, userID, resultStorage.StorageID)
+	getStorageDishesQuery := fmt.Sprintf(GetStorageDishesBase, userID, resultStorage.PersonalID)
 	rows, err := repo.db.Query(getStorageDishesQuery)
 	fmt.Println("now after doing the Query:", getStorageDishesQuery)
 	if err != nil {
