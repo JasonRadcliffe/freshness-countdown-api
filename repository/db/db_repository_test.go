@@ -18,7 +18,7 @@ var nD = &dish.Dish{
 	DishID:         360,
 	PersonalDishID: 2,
 	UserID:         2,
-	StorageID:      3,
+	StorageID:      1,
 	Title:          "Carrots",
 	Description:    "Some carrots we got at the store",
 	CreatedDate:    "2006-01-02T15:04:05",
@@ -33,7 +33,7 @@ var nDex = &dish.Dish{
 	DishID:         4,
 	PersonalDishID: 1,
 	UserID:         2,
-	StorageID:      3,
+	StorageID:      1,
 	Title:          "Old Carrots",
 	Description:    "Some carrots we got at the store last year",
 	CreatedDate:    "2006-01-02T15:04:05",
@@ -2048,14 +2048,19 @@ func TestDb_GetStorageDishes(t *testing.T) {
 
 	repo := &repository{db: db}
 
-	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+	storageRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(storageRows)
+
+	dishRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
 		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description,
 			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch).
 		AddRow(nD.DishID+200, nD.PersonalDishID+1, nD.UserID, nD.StorageID, nD.Title+"2", nD.Description+"2",
 			nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch+"2")
 
-	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnRows(rows)
+	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnRows(dishRows)
 
 	resultingDishes, err := repo.GetStorageDishes(nS.UserID, nS.PersonalID)
 
@@ -2077,6 +2082,11 @@ func TestDb_GetStorageDishes_NotFound(t *testing.T) {
 	defer db.Close()
 
 	repo := &repository{db: db}
+
+	storageRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(storageRows)
 
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"})
@@ -2100,6 +2110,11 @@ func TestDb_GetStorageDishes_QueryError(t *testing.T) {
 
 	repo := &repository{db: db}
 
+	storageRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(storageRows)
+
 	mock.ExpectQuery(fmt.Sprintf(GetStorageDishesBase, nS.UserID, nS.PersonalID)).WillReturnError(errors.New("database error"))
 	resultingDishes, err := repo.GetStorageDishes(nS.UserID, nS.PersonalID)
 
@@ -2117,6 +2132,11 @@ func TestDb_GetStorageDishes_RowScanError(t *testing.T) {
 	defer db.Close()
 
 	repo := &repository{db: db}
+
+	storageRows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "title", "description", "temp_match"}).
+		AddRow(nS.StorageID, nS.PersonalID, nS.UserID, nS.Title, nS.Description, nS.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(GetStorageByIDBase, nS.UserID, nS.PersonalID)).WillReturnRows(storageRows)
 
 	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
 		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
