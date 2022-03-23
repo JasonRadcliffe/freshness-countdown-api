@@ -1,4 +1,4 @@
-module github.com/JasonRadcliffe/freshness-countdown-api
+module github.com/jasonradcliffe/freshness-countdown-api
 
 go 1.18
 
@@ -7,7 +7,6 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/jasonradcliffe/freshness-countdown-api v0.0.0-20200526073846-4126fb692214
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
 )
