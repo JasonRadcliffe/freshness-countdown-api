@@ -1,0 +1,8 @@
+In order to develop and publish the same codebase to local test environment as well as production environment,
+Use this tool to generate self-signed certificates for using with 127.0.0.1:
+
+https://github.com/FiloSottile/mkcert
+
+
+To get GoLang on the Ubuntu web server, added private lists to apt-get with this page:
+https://github.com/golang/go/wiki/Ubuntu

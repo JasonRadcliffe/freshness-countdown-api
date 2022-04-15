@@ -3,7 +3,7 @@ package user
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -107,7 +107,7 @@ func (s *service) GetOrCreateByAccessToken(aT string, client *Client) (*user.Use
 
 	defer response.Body.Close()
 
-	contents, err := ioutil.ReadAll(response.Body)
+	contents, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fcerr.NewInternalServerError("Error when trying to read response from Google about user identity")
 	}
