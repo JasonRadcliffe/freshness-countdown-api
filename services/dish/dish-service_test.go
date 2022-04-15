@@ -2,6 +2,7 @@ package dish
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	dishDomain "github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
@@ -39,6 +40,60 @@ var nU = &userDomain.User{
 	AlexaUserID:  "qwertyuiop",
 	Admin:        false,
 	TempMatch:    "1v842d234523a",
+}
+
+func TestDishService_GetByID(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
+
+	resultingDish, err := dS.GetByID(nU, nD.PersonalDishID)
+	fmt.Println("got this dish from the test:", resultingDish)
+
+	assert.Equal(t, nD.Title, resultingDish.Title)
+}
+
+func TestDishService_GetByID_NotFound(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"})
+
+	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
+
+	resultingDish, err := dS.GetByID(nU, nD.PersonalDishID)
+	fmt.Println("got this dish from the test:", resultingDish)
+
+	assert.Nil(t, resultingDish)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 }
 
 func TestDishService_GetAll(t *testing.T) {
@@ -102,33 +157,6 @@ func TestDishService_GetExpired(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resultingDishes)
-	assert.Equal(t, 1, len(*resultingDishes))
+	assert.Equal(t, 2, len(*resultingDishes))
 
-}
-
-func TestDishService_GetByID(t *testing.T) {
-	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if testerr != nil {
-		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
-	}
-	defer db.Close()
-
-	repo, err := dbrepo.NewRepositoryWithDB(db)
-	if err != nil {
-		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
-	}
-
-	dS := NewService(repo)
-
-	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
-		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
-		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
-			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
-
-	mock.ExpectQuery(fmt.Sprintf(dbrepo.GetDishByIDBase, nD.UserID, nD.PersonalDishID)).WillReturnRows(rows)
-
-	resultingDish, err := dS.GetByID(nU, nD.PersonalDishID)
-	fmt.Println("got this dish from the test:", resultingDish)
-
-	assert.Equal(t, nD.Title, resultingDish.Title)
 }

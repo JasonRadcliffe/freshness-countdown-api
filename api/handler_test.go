@@ -112,5 +112,5 @@ func TestAPIHandler_getExpiredDishes(t *testing.T) {
 
 	assert.Nil(t, jsonErr)
 
-	assert.Equal(t, 1, len(resultingDishes))
+	assert.Equal(t, 2, len(resultingDishes))
 }
