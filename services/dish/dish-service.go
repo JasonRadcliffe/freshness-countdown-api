@@ -107,16 +107,16 @@ func (s *service) GetExpiredByDate(requestUser *userDomain.User, expireDateStr s
 	return &expiredDishes, nil
 }
 
-//Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) takes a user, a dish objecct, and an expirateion window in the form of () and creates the dish.
+//Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) takes a user, a dish, and an expirateion window in the form of Amazon.duration ("PnYnMnDTnHnMnS") and creates the dish.
 func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) (*dish.Dish, fcerr.FCErr) {
 
-	//TODO: write conversions between Alexa duration and time.Now
-	//Expire window come in a string containing an ISO-8601 duration format (PnYnMnDTnHnMnS)
-	expireDate := "2020-10-13T08:00"
-
 	datePattern := "2006-01-02T15:04:05"
-	timeNow := time.Now().In(time.UTC)
-	createdDate := timeNow.Format(datePattern)
+
+	timehereandnow := time.Now().In(time.UTC)
+
+	createdDate := timehereandnow.Format(datePattern)
+
+	expireDate := timehereandnow.Add(parseDuration(expireWindow)).Format(datePattern)
 
 	personalCount, err := s.repository.GetPersonalDishCount(requestingUser.UserID)
 	if err != nil {
@@ -128,7 +128,6 @@ func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, ex
 	newDish.CreatedDate = createdDate
 	newDish.ExpireDate = expireDate
 
-	fmt.Println("\nWe are doing the dish service Create() with this dish:\n", newDish)
 	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string
 	resultDish, err := s.repository.CreateDish(*newDish)
 	if err != nil {
