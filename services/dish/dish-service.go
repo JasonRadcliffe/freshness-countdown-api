@@ -3,6 +3,7 @@ package dish
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jasonradcliffe/freshness-countdown-api/domain/dish"
@@ -106,9 +107,11 @@ func (s *service) GetExpiredByDate(requestUser *userDomain.User, expireDateStr s
 	return &expiredDishes, nil
 }
 
+//Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) takes a user, a dish objecct, and an expirateion window in the form of () and creates the dish.
 func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) (*dish.Dish, fcerr.FCErr) {
 
 	//TODO: write conversions between Alexa duration and time.Now
+	//Expire window come in a string containing an ISO-8601 duration format (PnYnMnDTnHnMnS)
 	expireDate := "2020-10-13T08:00"
 
 	datePattern := "2006-01-02T15:04:05"
@@ -162,5 +165,102 @@ func (s *service) Delete(requestingUser *userDomain.User, dishID int) fcerr.FCEr
 		return fcerr.NewInternalServerError("Dish Service could not do the Delete()")
 	}
 	return nil
+
+}
+
+//parseDuration(expireWindow string) takes a string in the form "PnYnMnDTnHnMnS" and returns a duration in nanoseconds
+func parseDuration(expireWindow string) (resultDuration time.Duration) {
+	expireWindow = expireWindow[1:]
+
+	//Look for a number of years
+	yearString, rest, found := strings.Cut(expireWindow, "Y")
+	if found {
+		yearNumber, err := strconv.Atoi(yearString)
+		if err != nil {
+			return 0
+		}
+		yearNumberInHours := 8760 * yearNumber
+		resultDuration, _ = time.ParseDuration(fmt.Sprintf("%dh", yearNumberInHours))
+		expireWindow = rest
+	} else {
+		expireWindow = yearString
+	}
+
+	//Look for a number of months - using 730 hours as an approximate - will not be precise
+	monthString, rest, found := strings.Cut(expireWindow, "M")
+	if found {
+		monthNumber, err := strconv.Atoi(monthString)
+		if err != nil {
+			return 0
+		}
+		monthNumberInHours := 730 * monthNumber
+		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", monthNumberInHours))
+		resultDuration += newDuration
+		expireWindow = rest
+	} else {
+		expireWindow = monthString
+	}
+
+	//Look for a number of days
+	dayString, rest, found := strings.Cut(expireWindow, "D")
+	if found {
+		dayNumber, err := strconv.Atoi(dayString)
+		if err != nil {
+			return 0
+		}
+		dayNumberInHours := 24 * dayNumber
+		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", dayNumberInHours))
+		resultDuration += newDuration
+		expireWindow = rest
+	} else {
+		expireWindow = dayString
+	}
+
+	if expireWindow[0] != 'T' {
+		return resultDuration
+	}
+
+	expireWindow = expireWindow[1:]
+
+	//Look for a number of hours
+	hourString, rest, found := strings.Cut(expireWindow, "H")
+	if found {
+		hourNumber, err := strconv.Atoi(hourString)
+		if err != nil {
+			return 0
+		}
+		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", hourNumber))
+		resultDuration += newDuration
+		expireWindow = rest
+	} else {
+		expireWindow = hourString
+	}
+
+	//Look for a number of Minutes
+	minuteString, rest, found := strings.Cut(expireWindow, "M")
+	if found {
+		minuteNumber, err := strconv.Atoi(minuteString)
+		if err != nil {
+			return 0
+		}
+		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dm", minuteNumber))
+		resultDuration += newDuration
+		expireWindow = rest
+	} else {
+		expireWindow = minuteString
+	}
+
+	//Look for a number of Seconds
+	secondString, rest, found := strings.Cut(expireWindow, "S")
+	if found {
+		secondNumber, err := strconv.Atoi(secondString)
+		if err != nil {
+			return 0
+		}
+		newDuration, _ := time.ParseDuration(fmt.Sprintf("%ds", secondNumber))
+		resultDuration += newDuration
+	}
+
+	return resultDuration
 
 }
