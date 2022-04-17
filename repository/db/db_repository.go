@@ -372,8 +372,8 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 		return fcerr
 	}
 
-	returnedDish, err := repo.GetDishByID(userID, pID)
-	if err != nil {
+	returnedDish, err3 := repo.GetDishByID(userID, pID)
+	if err3 == nil {
 		fmt.Println("Expected an error here, but didn't get one!! Dish Title:" + returnedDish.Title)
 		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database, could not verify it was deleted.")
 		return fcerr
