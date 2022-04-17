@@ -171,8 +171,11 @@ func (s *service) Delete(requestingUser *userDomain.User, dishID int) fcerr.FCEr
 func parseDuration(expireWindow string) (resultDuration time.Duration) {
 	expireWindow = expireWindow[1:]
 
+	//Split the whole thing on the T seperator, whether all values are on one side or the other, or both halves present
+	dateHalf, timeHalf, timeFound := strings.Cut(expireWindow, "T")
+
 	//Look for a number of years
-	yearString, rest, found := strings.Cut(expireWindow, "Y")
+	yearString, rest, found := strings.Cut(dateHalf, "Y")
 	if found {
 		yearNumber, err := strconv.Atoi(yearString)
 		if err != nil {
@@ -180,13 +183,13 @@ func parseDuration(expireWindow string) (resultDuration time.Duration) {
 		}
 		yearNumberInHours := 8760 * yearNumber
 		resultDuration, _ = time.ParseDuration(fmt.Sprintf("%dh", yearNumberInHours))
-		expireWindow = rest
+		dateHalf = rest
 	} else {
-		expireWindow = yearString
+		dateHalf = yearString
 	}
 
 	//Look for a number of months - using 730 hours as an approximate - will not be precise
-	monthString, rest, found := strings.Cut(expireWindow, "M")
+	monthString, rest, found := strings.Cut(dateHalf, "M")
 	if found {
 		monthNumber, err := strconv.Atoi(monthString)
 		if err != nil {
@@ -195,13 +198,13 @@ func parseDuration(expireWindow string) (resultDuration time.Duration) {
 		monthNumberInHours := 730 * monthNumber
 		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", monthNumberInHours))
 		resultDuration += newDuration
-		expireWindow = rest
+		dateHalf = rest
 	} else {
-		expireWindow = monthString
+		dateHalf = monthString
 	}
 
 	//Look for a number of days
-	dayString, rest, found := strings.Cut(expireWindow, "D")
+	dayString, rest, found := strings.Cut(dateHalf, "D")
 	if found {
 		dayNumber, err := strconv.Atoi(dayString)
 		if err != nil {
@@ -210,54 +213,47 @@ func parseDuration(expireWindow string) (resultDuration time.Duration) {
 		dayNumberInHours := 24 * dayNumber
 		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", dayNumberInHours))
 		resultDuration += newDuration
-		expireWindow = rest
-	} else {
-		expireWindow = dayString
 	}
 
-	if expireWindow[0] != 'T' {
-		return resultDuration
-	}
-
-	expireWindow = expireWindow[1:]
-
-	//Look for a number of hours
-	hourString, rest, found := strings.Cut(expireWindow, "H")
-	if found {
-		hourNumber, err := strconv.Atoi(hourString)
-		if err != nil {
-			return 0
+	if timeFound {
+		//Look for a number of hours
+		hourString, rest, found := strings.Cut(timeHalf, "H")
+		if found {
+			hourNumber, err := strconv.Atoi(hourString)
+			if err != nil {
+				return 0
+			}
+			newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", hourNumber))
+			resultDuration += newDuration
+			timeHalf = rest
+		} else {
+			timeHalf = hourString
 		}
-		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dh", hourNumber))
-		resultDuration += newDuration
-		expireWindow = rest
-	} else {
-		expireWindow = hourString
-	}
 
-	//Look for a number of Minutes
-	minuteString, rest, found := strings.Cut(expireWindow, "M")
-	if found {
-		minuteNumber, err := strconv.Atoi(minuteString)
-		if err != nil {
-			return 0
+		//Look for a number of Minutes
+		minuteString, rest, found := strings.Cut(timeHalf, "M")
+		if found {
+			minuteNumber, err := strconv.Atoi(minuteString)
+			if err != nil {
+				return 0
+			}
+			newDuration, _ := time.ParseDuration(fmt.Sprintf("%dm", minuteNumber))
+			resultDuration += newDuration
+			timeHalf = rest
+		} else {
+			timeHalf = minuteString
 		}
-		newDuration, _ := time.ParseDuration(fmt.Sprintf("%dm", minuteNumber))
-		resultDuration += newDuration
-		expireWindow = rest
-	} else {
-		expireWindow = minuteString
-	}
 
-	//Look for a number of Seconds
-	secondString, rest, found := strings.Cut(expireWindow, "S")
-	if found {
-		secondNumber, err := strconv.Atoi(secondString)
-		if err != nil {
-			return 0
+		//Look for a number of Seconds
+		secondString, rest, found := strings.Cut(timeHalf, "S")
+		if found {
+			secondNumber, err := strconv.Atoi(secondString)
+			if err != nil {
+				return 0
+			}
+			newDuration, _ := time.ParseDuration(fmt.Sprintf("%ds", secondNumber))
+			resultDuration += newDuration
 		}
-		newDuration, _ := time.ParseDuration(fmt.Sprintf("%ds", secondNumber))
-		resultDuration += newDuration
 	}
 
 	return resultDuration
