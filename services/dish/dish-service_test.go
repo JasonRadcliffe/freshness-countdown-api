@@ -1,6 +1,7 @@
 package dish
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -331,20 +332,294 @@ func TestDishService_Create(t *testing.T) {
 		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
 			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
 
-	//mock.ExpectQuery(fmt.Sprintf(dbrepo.GetPersonalDishCountBase, nD.UserID)).WillReturnRows(dishCount)
 	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
-
-	//mock.ExpectQuery(fmt.Sprintf(dbrepo.CreateDishBase, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title,
-	//nD.Description, nD.CreatedDate, nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)).WillReturnRows(rows)
 
 	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
 
 	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
 
-	resultingDish, err := dS.Create(nU, nD, "P2DT2H")
+	resultingDish, err := dS.Create(nU, nD, "P1Y3DT2M")
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resultingDish)
-	//assert.Equal(t, http.StatusInternalServerError, err.Status())
+
+}
+
+func TestDishService_Create2MoreTimeCombinations(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1MT2H30S")
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create2MoreTimeCombinations_ParseErrors1(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1aY1M1DT2H2M30S")
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create2MoreTimeCombinations_ParseErrors2(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1Ya1M1DT2H2M30S")
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create2MoreTimeCombinations_ParseErrors3(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1Y1M1bDT2H2M30S")
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create2MoreTimeCombinations_ParseErrors4(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1Y1M1DTf2H2M30S")
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create2MoreTimeCombinations_ParseErrors5(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1Y1M1DT2Hn2M30S")
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create2MoreTimeCombinations_ParseErrors6(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnRows(rows)
+
+	resultingDish, err := dS.Create(nU, nD, "P1Y1M1DT2H2M3d0S")
+	assert.Nil(t, err)
+	assert.NotNil(t, resultingDish)
+
+}
+
+func TestDishService_Create_ErrorOnDishCountLookup(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnError(errors.New("database could not perform this action or returned some error."))
+
+	resultingDish, err := dS.Create(nU, nD, "P2DT2H")
+
+	assert.Nil(t, resultingDish)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+
+}
+
+func TestDishService_Create_CouldNotCreate(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`I.*`).WillReturnRows(rows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE temp_match = ".+"`).WillReturnError(errors.New("Could Not Retrieve a dish with the same temp match as we though we just added"))
+
+	resultingDish, err := dS.Create(nU, nD, "P2DT2H")
+
+	assert.Nil(t, resultingDish)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
 
 }
