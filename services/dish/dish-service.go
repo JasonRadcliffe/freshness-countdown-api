@@ -141,14 +141,13 @@ func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, ex
 func (s *service) Update(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) fcerr.FCErr {
 	datePattern := "2006-01-02T15:04:05"
 	timehereandnow := time.Now().In(time.UTC)
-	newDish.ExpireDate := timehereandnow.Add(parseDuration(expireWindow)).Format(datePattern)
-
+	newDish.ExpireDate = timehereandnow.Add(parseDuration(expireWindow)).Format(datePattern)
 
 	fmt.Println("\nWe are doing the dish service Update() with this dish:\n", newDish)
 	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string
 	err := s.repository.UpdateDish(*newDish)
 	if err != nil {
-		return fcerr.NewInternalServerError("Dish Service could not do the Create()")
+		return fcerr.NewInternalServerError("Dish Service could not do the Update()")
 	}
 	return nil
 }
