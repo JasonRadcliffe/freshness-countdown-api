@@ -15,7 +15,7 @@ import (
 )
 
 var nD = &dishDomain.Dish{
-	DishID:         1,
+	DishID:         200,
 	PersonalDishID: 2,
 	UserID:         2,
 	StorageID:      3,
@@ -619,6 +619,291 @@ func TestDishService_Create_CouldNotCreate(t *testing.T) {
 	resultingDish, err := dS.Create(nU, nD, "P2DT2H")
 
 	assert.Nil(t, resultingDish)
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+
+}
+
+func TestDishService_Update(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`UPDATE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnRows(rows)
+
+	err = dS.Update(nU, nD, "P1Y3DT2M")
+
+	assert.Nil(t, err)
+}
+
+func TestDishService_Update_CouldNotUpdate(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	mock.ExpectQuery(`UPDATE.*`).WillReturnError(errors.New("Database error, could not update"))
+
+	err = dS.Update(nU, nD, "P1Y3DT2M")
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+
+}
+
+func TestDishService_Update_CouldNotVerifyUpdate(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	mock.ExpectQuery(`UPDATE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnError(errors.New("Database error - could not verify update"))
+
+	err = dS.Update(nU, nD, "P1Y3DT2M")
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestDishService_Delete(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(2)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`DELETE FROM dish WHERE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnError(errors.New("Database error - dish not found"))
+
+	err = dS.Delete(nU, nD.PersonalDishID)
+
+	assert.Nil(t, err)
+}
+
+func TestDishService_Delete_DishIDTooHigh(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(2)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`DELETE FROM dish WHERE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnError(errors.New("Database error - dish not found"))
+
+	err = dS.Delete(nU, nD.PersonalDishID+2)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusBadRequest, err.Status())
+}
+
+func TestDishService_Delete_ErrorGettingDishCount(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnError(errors.New("Database error - could not get dish count"))
+
+	err = dS.Delete(nU, nD.PersonalDishID)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestDishService_Delete_ErrorOnDelete(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(2)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`DELETE FROM dish WHERE.*`).WillReturnError(errors.New("Could not do the delete query"))
+
+	err = dS.Delete(nU, nD.PersonalDishID)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestDishService_Delete_FindsDeletedDishOnDoubleCheck(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(2)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	rows := sqlmock.NewRows([]string{"id", "personal_id", "user_id", "storage_id", "title", "description", "created_date",
+		"expire_date", "priority", "dish_type", "portions", "temp_match"}).
+		AddRow(nD.DishID, nD.PersonalDishID, nD.UserID, nD.StorageID, nD.Title, nD.Description, nD.CreatedDate,
+			nD.ExpireDate, nD.Priority, nD.DishType, nD.Portions, nD.TempMatch)
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`DELETE FROM dish WHERE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnRows(rows)
+
+	err = dS.Delete(nU, nD.PersonalDishID)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, http.StatusInternalServerError, err.Status())
+}
+
+func TestDishService_Delete_DecrementSomeDishes(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(4)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`DELETE FROM dish WHERE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnError(errors.New("Database error - dish not found"))
+
+	mock.ExpectQuery(`UPDATE.*`).WillReturnRows(emptyRows)
+
+	err = dS.Delete(nU, nD.PersonalDishID)
+
+	assert.Nil(t, err)
+}
+
+func TestDishService_Delete_DecrementSomeDishesError(t *testing.T) {
+	db, mock, testerr := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+	if testerr != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, testerr)
+	}
+	defer db.Close()
+
+	repo, err := dbrepo.NewRepositoryWithDB(db)
+	if err != nil {
+		t.Fatalf(`an error "%s" was not expected when opening the fake database connection`, err)
+	}
+
+	dS := NewService(repo)
+
+	dishCount := sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(4)
+
+	emptyRows := sqlmock.NewRows([]string{})
+
+	mock.ExpectQuery(`SELECT C.*`).WillReturnRows(dishCount)
+
+	mock.ExpectQuery(`DELETE FROM dish WHERE.*`).WillReturnRows(emptyRows)
+
+	mock.ExpectQuery(`SELECT \* FROM dish WHERE.*`).WillReturnError(errors.New("Database error - dish not found"))
+
+	mock.ExpectQuery(`UPDATE.*`).WillReturnError(errors.New("Could not decrement those dishes"))
+
+	err = dS.Delete(nU, nD.PersonalDishID)
+
 	assert.NotNil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, err.Status())
 
