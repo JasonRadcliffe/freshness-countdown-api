@@ -139,12 +139,10 @@ func (s *service) Create(requestingUser *userDomain.User, newDish *dish.Dish, ex
 
 //Update(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) parses the expire window and updates the dish with the resulting expireDate value
 func (s *service) Update(requestingUser *userDomain.User, newDish *dish.Dish, expireWindow string) fcerr.FCErr {
+	datePattern := "2006-01-02T15:04:05"
+	timehereandnow := time.Now().In(time.UTC)
+	newDish.ExpireDate := timehereandnow.Add(parseDuration(expireWindow)).Format(datePattern)
 
-	//TODO: write conversions between Alexa duration and time.Now
-	expireDate := "2020-10-13T08:00"
-	//datePattern := "2006-01-02T15:04"
-
-	newDish.ExpireDate = expireDate
 
 	fmt.Println("\nWe are doing the dish service Update() with this dish:\n", newDish)
 	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string
