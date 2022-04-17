@@ -367,9 +367,8 @@ func (repo *repository) DeleteDish(userID int, pID int) fcerr.FCErr {
 
 	_, err2 := repo.db.Query(deleteDishQuery)
 	if err2 != nil {
-		fmt.Println("got an error on the delete query:" + err.Error())
-		fcerr := fcerr.NewInternalServerError("Error while deleting the dish from the database")
-		return fcerr
+		fmt.Println("got an error on the delete query:" + err2.Error())
+		return fcerr.NewInternalServerError("Error while deleting the dish from the database")
 	}
 
 	returnedDish, err3 := repo.GetDishByID(userID, pID)
