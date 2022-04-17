@@ -2,6 +2,7 @@ package dish
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -158,7 +159,13 @@ func (s *service) Delete(requestingUser *userDomain.User, dishID int) fcerr.FCEr
 	//alexaid string, accessToken string, storageID string, title string, desc string, expire string, priority string, dishtype string, portions string
 	err := s.repository.DeleteDish(requestingUser.UserID, dishID)
 	if err != nil {
-		return fcerr.NewInternalServerError("Dish Service could not do the Delete()")
+
+		if err.Status() == http.StatusBadRequest {
+			return fcerr.NewBadRequestError("Dish Service could not do Delete() for what appears to be a bad request")
+		} else {
+			return fcerr.NewInternalServerError("Dish Service could not do the Delete()")
+		}
+
 	}
 	return nil
 
