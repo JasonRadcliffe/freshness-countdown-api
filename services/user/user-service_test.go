@@ -499,19 +499,6 @@ func TestUser_GetOrCreateByAccessToken_OauthResponseReadError(t *testing.T) {
 		httpClient: &http.Client{Transport: respondWithReader{body: failReader(0)}},
 	}
 
-	/*
-
-		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(googleAPIOKResponse))
-		})
-
-		httpClient, teardown := testHTTPClient(h)
-		defer teardown()
-
-		client := NewClient()
-		client.httpClient = httpClient
-	*/
-
 	resultingUser, err := userService.GetOrCreateByAccessToken(nU.AccessToken, c)
 
 	assert.Nil(t, resultingUser)
